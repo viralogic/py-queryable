@@ -1,0 +1,9 @@
+attrs==17.4.0
+colorama==0.3.9
+funcsigs==1.0.2
+meta===-
+pluggy==0.6.0
+py==1.5.2
+py-linq==0.5.0
+pytest==3.3.2
+six==1.11.0
