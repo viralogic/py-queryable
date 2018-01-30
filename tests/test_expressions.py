@@ -31,15 +31,16 @@ class TestSqlExpressions(TestCase):
         self.assertTrue(u"student.gpa AS gpa")
 
     def test_where_expression(self):
-        we = WhereExpression(Student, self.table_expression, lambda x: x.gpa > 10)
+        we = WhereExpression(Student, lambda x: x.gpa > 10, self.table_expression)
         sql = self.visitor.visit(we)
         self.assertTrue(sql.endswith(u"student.gpa > 10"))
 
     def test_where_expression_complex(self):
         we = WhereExpression(
             Student,
-            self.table_expression,
-            lambda x: (x.gpa > 10 and x.first_name == u'Bruce') or x.first_name == u'Dustin')
+            lambda x: (x.gpa > 10 and x.first_name == u'Bruce') or x.first_name == u'Dustin',
+            self.table_expression
+        )
         sql = self.visitor.visit(we)
         self.assertTrue(
             sql.endswith(u"WHERE (student.gpa > 10 AND student.first_name = 'Bruce') OR student.first_name = 'Dustin'")
@@ -47,8 +48,8 @@ class TestSqlExpressions(TestCase):
 
         we = WhereExpression(
                 Student,
-                self.table_expression,
-                lambda x: ((x.first_name == u'Bruce' and x.last_name == u'Fenske') or x.first_name == u'Dustin') or (x.gpa > 10 and x.gpa < 20)
+                lambda x: ((x.first_name == u'Bruce' and x.last_name == u'Fenske') or x.first_name == u'Dustin') or (x.gpa > 10 and x.gpa < 20),
+                self.table_expression
             )
         sql = self.visitor.visit(we)
         self.assertTrue(

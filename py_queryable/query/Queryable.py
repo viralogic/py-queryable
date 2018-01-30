@@ -64,25 +64,23 @@ class Queryable(object):
         return self.provider.provider_visitor.visit(self.expression)
 
     def select(self, func):
-        self.__exp = UnaryExpression(SelectExpression(self.type, func), self.expression)
-        return self
+        return Queryable(UnaryExpression(SelectExpression(self.type, func), self.expression), self.provider)
 
     def count(self):
-        self.__exp = CountExpression(self.type, self.expression)
-        return self.provider.db_provider.execute_scalar(self.sql)
+        query = Queryable(CountExpression(self.type, self.expression), self.provider)
+        return self.provider.db_provider.execute_scalar(query.sql)
 
     def take(self, limit):
         if isinstance(self.__exp, SkipExpression):
             self.expression.exp.op.limit = limit
+            return self
         else:
-            self.__exp = TakeExpression(self.type, self.expression, limit)
-        return self
+            return Queryable(TakeExpression(self.type, self.expression, limit), self.provider)
 
     def skip(self, offset):
         if not isinstance(self.expression, TakeExpression):
             self.__exp = TakeExpression(self.type, self.expression, -1)
-        self.__exp = SkipExpression(self.type, self.expression, offset)
-        return self
+        return Queryable(SkipExpression(self.type, self.expression, offset), self.provider)
 
     def first(self):
         return self.take(1).as_enumerable().first()
@@ -94,8 +92,8 @@ class Queryable(object):
             return None
 
     def where(self, func):
-        self.__exp = WhereExpression(self.type, self.expression, func)
-        return self
+        return Queryable(
+            WhereExpression(self.type, func, self.expression), self.provider)
 
     def as_enumerable(self):
         return Enumerable(self)

@@ -29,6 +29,7 @@ class QueryableTest(TestCase):
 
         self.conn.add(self.student1)
         self.conn.add(self.student2)
+
         self.conn.save_changes()
 
     def test_sql(self):
@@ -174,9 +175,35 @@ class QueryableTest(TestCase):
         self.assertIsNone(result, u"First or Default query should be none. The Student table is empty")
 
     def test_where(self):
-        students = self.conn.query(UnaryExpression(Student, SelectExpression(Student), TableExpression(Student)))\
-            .where(lambda s: s.student_id == 1)
-        self.assertEquals(students.count(), 1)
+        students = self.conn.query(
+            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
+        ).where(lambda s: s.student_id == 1)
+        num_students = students.count()
+        self.assertEquals(num_students, 1, u"Should only be one student row returned in query")
+
+        student = students.first()
+        self.assertIsNotNone(student, u"Student instance should not be None")
+        self.assertEquals(student.first_name, u"Bruce", u"First name should be Bruce")
+        self.assertEquals(student.gpa, 50, u"GPA should be 50")
+
+        self.student3 = Student()
+        self.student3.student_id = 3
+        self.student3.first_name = u"Miguel"
+        self.student3.last_name = u"McDavid"
+        self.student3.gpa = 90
+
+        self.conn.add(self.student3)
+        self.conn.save_changes()
+
+        students = self.conn.query(
+            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
+        ).where(lambda s: s.student_id == 1 or student.gpa >= 50)
+        self.assertEquals(students.count(), 2)
+
+        students = self.conn.query(
+            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
+        ).where(lambda s: s.student_id == 1 and student.gpa > 50)
+        self.assertIsNone(students.first_or_default())
 
     def tearDown(self):
         if self.conn is not None:

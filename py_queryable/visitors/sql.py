@@ -1,10 +1,10 @@
 import ast
 from py_linq import Enumerable
-from . import IExpressionVisitor
+from ..visitors import Visitor
 from ..expressions import LambdaExpression
 
 
-class SqlVisitor(IExpressionVisitor):
+class SqlVisitor(Visitor):
 
     def visit_UnaryExpression(self, expression):
         return u"{0} {1}".format(expression.op.visit(self), expression.exp.visit(self))
@@ -25,10 +25,6 @@ class SqlVisitor(IExpressionVisitor):
     def visit_TableExpression(self, expression):
         return u"FROM {0}".format(expression.type.table_name())
 
-    def visit_WhereExpression(self, expression):
-        t = LambdaExpression.parse(expression.type, expression.func)
-        return u"{0} WHERE {1}".format(expression.exp.visit(self), t.body.sql)
-
     def visit_CountOperator(self, expression):
         return u"SELECT COUNT(*)"
 
@@ -46,5 +42,11 @@ class SqlVisitor(IExpressionVisitor):
 
     def visit_CountExpression(self, expression):
         return u"{0} FROM ({1})".format(expression.op.visit(self), expression.exp.visit(self))
+
+    def visit_WhereOperator(self, expression):
+        return u"WHERE {0}".format(LambdaExpression.parse(expression.type, expression.func).body.sql)
+
+    def visit_WhereExpression(self, expression):
+        return u"{0} {1}".format(expression.exp.visit(self), expression.op.visit(self))
 
 
