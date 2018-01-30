@@ -53,6 +53,10 @@ class Expression(object):
             node = q[0]
             if type(node) == expression:
                 return node
+            try:
+                children = node.children
+            except AttributeError as err:
+                raise err
             for n in node.children:
                 q.append(n)
             q.pop(0)
@@ -109,25 +113,6 @@ class TableExpression(Expression):
 
     def __repr__(self):
         return u"Table(table_name={0})".format(self.type.table_name)
-
-
-class WhereExpression(Expression):
-
-    def __init__(self, T, func):
-        super(WhereExpression, self).__init__(T)
-        if func is None:
-            raise Exception(u"WhereExpression must have lambda expression constructor parameter")
-        self.func = func
-
-    def visit(self, visitor):
-        return visitor.visit_WhereExpression(self)
-
-    @property
-    def children(self):
-        return []
-
-    def __repr__(self):
-        return u"Where(func={0})".format(ast.dump(LambdaExpression.parse(self.type, self.func)))
 
 
 class Operator(Expression):
@@ -197,21 +182,31 @@ class SkipExpression(UnaryExpression):
         return visitor.visit_SkipExpression(self)
 
 
-class WhereExpression(Expression):
-
-    def __init__(self, T, exp, func):
-        super(WhereExpression, self).__init__(T)
-        self.exp = exp
+class WhereOperator(Operator):
+    def __init__(self, T, func):
+        super(WhereOperator, self).__init__(T)
         self.func = func
+
+    def visit(self, visitor):
+        return visitor.visit_WhereOperator(self)
+
+    def __repr__(self):
+        return u"WhereOperator(T={0}, func={1})".format(
+            self.type.__class__.__name__,
+            ast.dump(LambdaExpression.parse(self.type, self.func))
+        )
+
+
+class WhereExpression(UnaryExpression):
+    def __init__(self, T, func, exp):
+        super(WhereExpression, self).__init__(T, WhereOperator(T, func), exp)
 
     def visit(self, visitor):
         return visitor.visit_WhereExpression(self)
 
-    def children(self):
-        return []
-
     def __repr__(self):
-        return u"Where(func={0}, exp={1})".format(ast.dump(LambdaExpression.parse(self.func)), self.exp.__repr__())
-
-
-
+        return u"Where(T={0}, op={1}, exp={2})".format(
+            self.type.__class__.__name__,
+            self.op.__repr__(),
+            self.exp.__repr__()
+        )
