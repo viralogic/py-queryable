@@ -1,7 +1,7 @@
 from ..expressions import *
 from ..entity.proxy import DynamicModelProxy
 from py_linq import Enumerable
-from py_linq.exceptions import NoElementsError
+from py_linq.exceptions import NoElementsError, NoMatchingElement, MoreThanOneMatchingElement
 
 
 class Queryable(object):
@@ -91,12 +91,56 @@ class Queryable(object):
         except NoElementsError:
             return None
 
+    def order_by(self, func):
+        return OrderedQueryable(
+            OrderByExpression(self.type, func, self.expression),
+            self.provider
+        )
+
+    def order_by_descending(self, func):
+        return OrderedQueryable(
+            OrderByDescendingExpression(self.type, func, self.expression),
+            self.provider
+        )
+
     def where(self, func):
         return Queryable(
             WhereExpression(self.type, func, self.expression), self.provider)
+
+    def single(self, func=None):
+        result = self.where(func).to_list() if func is not None else self.to_list()
+        count = len(result)
+        if count == 0:
+            raise NoMatchingElement(u"No matching elements could be found")
+        if count > 1:
+            raise MoreThanOneMatchingElement(u"More than one matching element found")
+        return result[0]
+
+    def single_or_default(self, func=None):
+        try:
+            return self.single(func)
+        except NoMatchingElement as err:
+            return None
 
     def as_enumerable(self):
         return Enumerable(self)
 
     def to_list(self):
         return self.as_enumerable().to_list()
+
+
+class OrderedQueryable(Queryable):
+    def __init__(self, expression, query_provider):
+        super(OrderedQueryable, self).__init__(expression, query_provider)
+
+    def then_by(self, func):
+        return OrderedQueryable(
+            ThenByExpression(self.type, func, self.expression),
+            self.provider
+        )
+
+    def then_by_descending(self, func):
+        return OrderedQueryable(
+            ThenByDescendingExpression(self.type, func, self.expression),
+            self.provider
+        )

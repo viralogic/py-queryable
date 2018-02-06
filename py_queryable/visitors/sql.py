@@ -1,7 +1,7 @@
 import ast
 from py_linq import Enumerable
 from ..visitors import Visitor
-from ..expressions import LambdaExpression
+from ..expressions import LambdaExpression, OrderByExpression, OrderByDescendingExpression
 
 
 class SqlVisitor(Visitor):
@@ -48,5 +48,28 @@ class SqlVisitor(Visitor):
 
     def visit_WhereExpression(self, expression):
         return u"{0} {1}".format(expression.exp.visit(self), expression.op.visit(self))
+
+    def visit_OrderByOperator(self, expression):
+        t = LambdaExpression.parse(expression.type, expression.func)
+        return u"ORDER BY {0}".format(t.body.sql)
+
+    def visit_OrderByExpression(self, expression):
+        return u"{0} {1} ASC".format(expression.exp.visit(self), expression.op.visit(self))
+
+    def visit_OrderByDescendingExpression(self, expression):
+        return u"{0} {1} DESC".format(expression.exp.visit(self), expression.op.visit(self))
+
+    def visit_ThenByOperator(self, expression):
+        t = LambdaExpression.parse(expression.type, expression.func)
+        return u", {0}".format(t.body.sql)
+
+    def visit_ThenByExpression(self, expression):
+        return self.visit_OrderByExpression(expression)
+
+    def visit_ThenByDescendingExpression(self, expression):
+        return self.visit_OrderByDescendingExpression(expression)
+
+
+
 
 

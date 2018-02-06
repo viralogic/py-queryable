@@ -4,7 +4,7 @@ from . import _sqlite_db_path
 from py_queryable.expressions import *
 from .models import Student
 from py_queryable.db_providers import SqliteDbConnection
-from py_linq.exceptions import NoElementsError
+from py_linq.exceptions import NoElementsError, MoreThanOneMatchingElement, NoMatchingElement
 
 
 class QueryableTest(TestCase):
@@ -204,6 +204,156 @@ class QueryableTest(TestCase):
             UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
         ).where(lambda s: s.student_id == 1 and student.gpa > 50)
         self.assertIsNone(students.first_or_default())
+
+    def test_single(self):
+        students = self.conn.query(
+            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
+        )
+        student = students.single(lambda s: s.student_id == 1)
+        self.assertIsNotNone(student, u"Student instance should not be None")
+        self.assertEquals(student.first_name, u"Bruce", u"First name should be Bruce")
+        self.assertEquals(student.gpa, 50, u"GPA should be 50")
+
+        self.assertRaises(MoreThanOneMatchingElement, students.single, lambda s: s.gpa > 0)
+
+        self.assertRaises(
+            NoMatchingElement,
+            students.single,
+            lambda s: s.first_name == u"Wayne" and s.last_name == u"Gretzky"
+        )
+
+    def test_single_or_default(self):
+        students = self.conn.query(
+            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
+        )
+        student = students.single_or_default(lambda s: s.student_id == 1)
+        self.assertIsNotNone(student, u"Student instance should not be None")
+        self.assertEquals(student.first_name, u"Bruce", u"First name should be Bruce")
+        self.assertEquals(student.gpa, 50, u"GPA should be 50")
+
+        self.assertIsNone(students.single_or_default(lambda s: s.first_name == u"Wayne" and s.last_name == u"Gretzky"))
+        self.assertRaises(MoreThanOneMatchingElement, students.single_or_default, lambda s: s.gpa > 0)
+
+    def test_order_by(self):
+        self.student3 = Student()
+        self.student3.student_id = 3
+        self.student3.first_name = u"Miguel"
+        self.student3.last_name = u"McDavid"
+        self.student3.gpa = 90
+
+        self.conn.add(self.student3)
+        self.conn.save_changes()
+
+        students = self.conn.query(
+            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
+        )
+
+        ordered_students = students.order_by(lambda x: x.gpa)
+        highest_grade = 0
+        for s in ordered_students:
+            self.assertTrue(highest_grade <= s.gpa, u"{0} is not <= {1}".format(highest_grade, s.gpa))
+            highest_grade = s.gpa
+
+        # Try ordering multiple columns
+        ordered_students = students.order_by(lambda x: x.last_name).then_by(lambda x: x.first_name).to_list()
+        self.assertEquals(ordered_students[0].last_name, u"Fenske")
+        self.assertEquals(ordered_students[0].first_name, u"Bruce")
+        self.assertEquals(ordered_students[1].last_name, u"McDavid")
+        self.assertEquals(ordered_students[1].first_name, u"Miguel")
+        self.assertEquals(ordered_students[2].last_name, u"Mudryk")
+        self.assertEquals(ordered_students[2].first_name, u"Abraham")
+
+    def test_order_by_multiple(self):
+        self.student3 = Student()
+        self.student3.student_id = 3
+        self.student3.first_name = u"Miguel"
+        self.student3.last_name = u"McDavid"
+        self.student3.gpa = 9
+
+        self.conn.add(self.student3)
+        self.conn.save_changes()
+
+        students = self.conn.query(
+            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
+        )
+
+        # Try ordering multiple columns
+        ordered_students = students.order_by(lambda x: x.gpa).then_by(lambda x: x.last_name).to_list()
+        self.assertEquals(ordered_students[0].gpa, 9)
+        self.assertEquals(ordered_students[0].last_name, u"McDavid")
+        self.assertEquals(ordered_students[1].gpa, 9)
+        self.assertEquals(ordered_students[1].last_name, u"Mudryk")
+        self.assertEquals(ordered_students[2].gpa, 50)
+        self.assertEquals(ordered_students[2].last_name, u"Fenske")
+
+    def test_order_by_descending(self):
+        self.student3 = Student()
+        self.student3.student_id = 3
+        self.student3.first_name = u"Miguel"
+        self.student3.last_name = u"McDavid"
+        self.student3.gpa = 90
+
+        self.conn.add(self.student3)
+        self.conn.save_changes()
+
+        students = self.conn.query(
+            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
+        )
+
+        ordered_students = students.order_by_descending(lambda x: x.gpa)
+        highest_grade = 100
+        for s in ordered_students:
+            self.assertTrue(highest_grade >= s.gpa, u"{0} is not <= {1}".format(highest_grade, s.gpa))
+            highest_grade = s.gpa
+
+        # Try ordering multiple columns
+        ordered_students = students\
+            .order_by_descending(lambda x: x.last_name)\
+            .then_by_descending(lambda x: x.first_name).\
+            to_list()
+        self.assertEquals(ordered_students[0].last_name, u"Mudryk")
+        self.assertEquals(ordered_students[0].first_name, u"Abraham")
+        self.assertEquals(ordered_students[1].last_name, u"McDavid")
+        self.assertEquals(ordered_students[1].first_name, u"Miguel")
+        self.assertEquals(ordered_students[2].last_name, u"Fenske")
+        self.assertEquals(ordered_students[2].first_name, u"Bruce")
+
+    def test_order_by_descending_multiple(self):
+        self.student3 = Student()
+        self.student3.student_id = 3
+        self.student3.first_name = u"Miguel"
+        self.student3.last_name = u"McDavid"
+        self.student3.gpa = 9
+
+        self.conn.add(self.student3)
+        self.conn.save_changes()
+
+        students = self.conn.query(
+            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
+        )
+
+        # Try ordering multiple columns
+        ordered_students = students\
+            .order_by_descending(lambda x: x.gpa)\
+            .then_by_descending(lambda x: x.last_name)\
+            .to_list()
+        self.assertEquals(ordered_students[0].gpa, 50)
+        self.assertEquals(ordered_students[0].last_name, u"Fenske")
+        self.assertEquals(ordered_students[1].gpa, 9)
+        self.assertEquals(ordered_students[1].last_name, u"Mudryk")
+        self.assertEquals(ordered_students[2].gpa, 9)
+        self.assertEquals(ordered_students[2].last_name, u"McDavid")
+
+        ordered_students = students\
+            .order_by_descending(lambda x: x.last_name)\
+            .then_by_descending(lambda x: x.gpa)\
+            .to_list()
+        self.assertEquals(ordered_students[0].gpa, 9)
+        self.assertEquals(ordered_students[0].last_name, u"Mudryk")
+        self.assertEquals(ordered_students[1].gpa, 9)
+        self.assertEquals(ordered_students[1].last_name, u"McDavid")
+        self.assertEquals(ordered_students[2].gpa, 50)
+        self.assertEquals(ordered_students[2].last_name, u"Fenske")
 
     def tearDown(self):
         if self.conn is not None:

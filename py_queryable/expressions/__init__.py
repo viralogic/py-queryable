@@ -210,3 +210,101 @@ class WhereExpression(UnaryExpression):
             self.op.__repr__(),
             self.exp.__repr__()
         )
+
+
+class OrderByOperator(Operator):
+    def __init__(self, T, func):
+        super(OrderByOperator, self).__init__(T)
+        self.func = func
+
+    def visit(self, visitor):
+        return visitor.visit_OrderByOperator(self)
+
+    def __repr__(self):
+        return u"OrderByOperator(T={0}, func={1})".format(
+            self.type.__class__.name,
+            ast.dump(LambdaExpression.parse(self.type, self.func))
+        )
+
+
+class ThenByOperator(Operator):
+    def __init__(self, T, func):
+        super(ThenByOperator, self).__init__(T)
+        self.func = func
+
+    def visit(self, visitor):
+        return visitor.visit_ThenByOperator(self)
+
+    def __repr__(self):
+        return u"ThenByOperator(T={0}, func={1})".format(
+            self.type.__class__.name,
+            ast.dump(LambdaExpression.parse(self.type, self.func))
+        )
+
+
+class OrderByExpression(UnaryExpression):
+    def __init__(self, T, func, exp):
+        super(OrderByExpression, self).__init__(
+            T,
+            OrderByOperator(T, func),
+            exp
+        )
+
+    def visit(self, visitor):
+        return visitor.visit_OrderByExpression(self)
+
+    def __repr__(self):
+        return u"OrderBy(T={0}, op={1}, exp={2})".format(
+            self.type.__class__.name,
+            self.op.__repr__(),
+            self.exp.__repr__()
+        )
+
+
+class ThenByExpression(UnaryExpression):
+    def __init__(self, T, func, exp):
+        super(ThenByExpression, self).__init__(
+            T,
+            ThenByOperator(T, func),
+            exp
+        )
+
+    def visit(self, visitor):
+        return visitor.visit_ThenByExpression(self)
+
+    def __repr__(self):
+        return u"ThenBy(T={0}, op={1}, exp={2})".format(
+            self.type.__class__.name,
+            self.op.__repr__(),
+            self.exp.__repr__()
+        )
+
+
+class OrderByDescendingExpression(OrderByExpression):
+    def __init__(self, T, func, exp):
+        super(OrderByDescendingExpression, self).__init__(T, func, exp)
+
+    def visit(self, visitor):
+        return visitor.visit_OrderByDescendingExpression(self)
+
+    def __repr__(self):
+        return u"OrderByDescending(T={0}, op={1}, exp={2})".format(
+            self.type.__class__.name,
+            self.op.__repr__(),
+            self.exp.__repr__()
+        )
+
+
+class ThenByDescendingExpression(ThenByExpression):
+    def __init__(self, T, func, exp):
+        super(ThenByDescendingExpression, self).__init__(T, func, exp)
+
+    def visit(self, visitor):
+        return visitor.visit_ThenByDescendingExpression(self)
+
+    def __repr__(self):
+        return u"ThenByDescending(T={0}, op={1}, exp={2})".format(
+            self.type.__class__.name,
+            self.op.__repr__(),
+            self.exp.__repr__()
+        )

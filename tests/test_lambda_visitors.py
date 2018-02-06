@@ -30,6 +30,11 @@ class SqlLambdaTranslatorTest(TestCase):
         self.tuple_select = lambda x: (x.first_name, x.last_name, x.gpa)
         self.dict_select = lambda x: {'FirstName': x.first_name, 'LastName': x.last_name, 'GPA': x.gpa}
 
+        self.simple_order_by = lambda x: x.first_name
+        self.list_order_by = lambda x: [x.first_name, x.last_name, x.gpa]
+        self.tuple_order_by = lambda x: (x.first_name, x.last_name, x.gpa)
+
+
     @staticmethod
     def translate(func):
         return LambdaExpression.parse(Student, func)
@@ -225,6 +230,10 @@ class SqlLambdaTranslatorTest(TestCase):
         t = SqlLambdaTranslatorTest.translate(self.simple_select)
         self.assertEqual(t.body.sql, u"student.first_name", u"Should equal 'student.first_name")
 
+    def test_order_by(self):
+        t = SqlLambdaTranslatorTest.translate(self.simple_order_by)
+        self.assertEqual(t.body.sql, u"student.first_name", u"Should equal 'student.first_name")
+
     def test_list_select(self):
         t = SqlLambdaTranslatorTest.translate(self.list_select)
         self.assertIsInstance(t.body, ast.List, u"Should be a List instance")
@@ -237,7 +246,7 @@ class SqlLambdaTranslatorTest(TestCase):
 
     def test_tuple_select(self):
         t = SqlLambdaTranslatorTest.translate(self.tuple_select)
-        self.assertIsInstance(t.body, ast.Tuple, u"Should be a List instance")
+        self.assertIsInstance(t.body, ast.Tuple, u"Should be a Tuple instance")
         correct = u"student.first_name AS first_name, student.last_name AS last_name, student.gpa AS gpa"
         self.assertEqual(
             t.body.sql,

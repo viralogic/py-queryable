@@ -86,3 +86,65 @@ class TestSqlExpressions(TestCase):
         se = SkipExpression(Student, te, 1)
         sql = self.visitor.visit(se)
         self.assertEqual(sql, u"SELECT student.first_name AS first_name FROM student LIMIT 1 OFFSET 1")
+
+    def test_order_by_operator(self):
+        obo = OrderByOperator(Student, lambda x: x.first_name)
+        sql = self.visitor.visit(obo)
+        self.assertEqual(sql, u"ORDER BY student.first_name")
+
+    def test_order_by_expression(self):
+        te = UnaryExpression(Student, SelectExpression(Student, lambda s: s.first_name), self.table_expression)
+        obe = OrderByExpression(Student, lambda s: s.first_name, te)
+        sql = self.visitor.visit(obe)
+        self.assertEqual(sql, u"SELECT student.first_name AS first_name FROM student ORDER BY student.first_name ASC")
+
+    def test_then_by_expression(self):
+        te = UnaryExpression(Student, SelectExpression(Student, lambda s: (s.first_name, s.gpa)), self.table_expression)
+        tbe = ThenByExpression(Student, lambda s: s.gpa, OrderByExpression(Student, lambda s: s.first_name, te))
+        sql = self.visitor.visit(tbe)
+        self.assertEqual(
+            sql,
+            u"SELECT student.first_name AS first_name, student.gpa AS gpa FROM student ORDER BY student.first_name ASC , student.gpa ASC")
+
+        tbde = ThenByDescendingExpression(Student, lambda s: s.gpa, OrderByExpression(Student, lambda s: s.first_name, te))
+        sql = self.visitor.visit(tbde)
+        self.assertEqual(
+            sql,
+            u"SELECT student.first_name AS first_name, student.gpa AS gpa FROM student ORDER BY student.first_name ASC , student.gpa DESC")
+
+    def test_order_by_descending_expression(self):
+        te = UnaryExpression(Student, SelectExpression(Student, lambda s: s.first_name), self.table_expression)
+        obe = OrderByDescendingExpression(Student, lambda s: s.first_name, te)
+        sql = self.visitor.visit(obe)
+        self.assertEqual(sql, u"SELECT student.first_name AS first_name FROM student ORDER BY student.first_name DESC")
+
+    def test_then_by_descending_expression(self):
+        te = UnaryExpression(Student, SelectExpression(Student, lambda s: (s.first_name, s.gpa)), self.table_expression)
+        tbde = ThenByDescendingExpression(
+            Student,
+            lambda s: s.gpa,
+            OrderByDescendingExpression(Student, lambda s: s.first_name, te)
+        )
+        sql = self.visitor.visit(tbde)
+        self.assertEqual(
+            sql,
+            u"SELECT student.first_name AS first_name, student.gpa AS gpa FROM student ORDER BY student.first_name DESC , student.gpa DESC"
+        )
+
+        tbde = ThenByExpression(
+            Student,
+            lambda s: s.gpa,
+            OrderByDescendingExpression(Student, lambda s: s.first_name, te)
+        )
+
+        sql = self.visitor.visit(tbde)
+        self.assertEqual(
+            sql,
+            u"SELECT student.first_name AS first_name, student.gpa AS gpa FROM student ORDER BY student.first_name DESC , student.gpa ASC"
+        )
+
+
+
+
+
+
