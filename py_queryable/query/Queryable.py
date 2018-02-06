@@ -82,6 +82,10 @@ class Queryable(object):
             self.__exp = TakeExpression(self.type, self.expression, -1)
         return Queryable(SkipExpression(self.type, self.expression, offset), self.provider)
 
+    def max(self, func=None):
+        query = Queryable(MaxExpression(self.type, self.expression, func), self.provider)
+        return self.provider.db_provider.execute_scalar(query.sql)
+
     def first(self):
         return self.take(1).as_enumerable().first()
 

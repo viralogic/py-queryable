@@ -1,7 +1,7 @@
 import ast
 from py_linq import Enumerable
 from ..visitors import Visitor
-from ..expressions import LambdaExpression, OrderByExpression, OrderByDescendingExpression
+from ..expressions import LambdaExpression, SelectExpression
 
 
 class SqlVisitor(Visitor):
@@ -68,6 +68,12 @@ class SqlVisitor(Visitor):
 
     def visit_ThenByDescendingExpression(self, expression):
         return self.visit_OrderByDescendingExpression(expression)
+
+    def visit_MaxOperator(self, expression):
+        return u"SELECT MAX({0})".format(LambdaExpression.parse(expression.type, expression.func).body.sql)
+
+    def visit_MaxExpression(self, expression):
+        return u"{0} FROM ({1})".format(expression.op.visit(self), expression.exp.visit(self))
 
 
 

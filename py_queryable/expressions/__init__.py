@@ -53,10 +53,6 @@ class Expression(object):
             node = q[0]
             if type(node) == expression:
                 return node
-            try:
-                children = node.children
-            except AttributeError as err:
-                raise err
             for n in node.children:
                 q.append(n)
             q.pop(0)
@@ -180,6 +176,47 @@ class SkipExpression(UnaryExpression):
 
     def visit(self, visitor):
         return visitor.visit_SkipExpression(self)
+
+
+class MaxOperator(Operator):
+    def __init__(self, T, func):
+        super(MaxOperator, self).__init__(T)
+        self.func = func
+
+    def visit(self, visitor):
+        return visitor.visit_MaxOperator(self)
+
+    def __repr__(self):
+        return u"MaxOp(T={0}, func={1})".format(
+            self.type.__class__.__name__,
+            ast.dump(LambdaExpression.parse(self.type, self.func))
+        )
+
+
+class MaxExpression(UnaryExpression):
+    def __init__(self, T, exp, func=None):
+        if func is None:
+            select = exp.find(SelectExpression)
+            if select is None or select.func is None:
+                raise AttributeError(
+                    u"Max expression with no lambda function must be preceded by a select with a lambda expression"
+                )
+            func = select.func
+        super(MaxExpression, self).__init__(
+            T,
+            MaxOperator(T, func),
+            exp
+        )
+
+    def visit(self, visitor):
+        return visitor.visit_MaxExpression(self)
+
+    def __repr__(self):
+        return u"Max(T={0}, op={1}, exp={2})".format(
+            self.type.__class__.__name__,
+            self.op.__repr__(),
+            self.exp.__repr__()
+        )
 
 
 class WhereOperator(Operator):

@@ -143,6 +143,23 @@ class TestSqlExpressions(TestCase):
             u"SELECT student.first_name AS first_name, student.gpa AS gpa FROM student ORDER BY student.first_name DESC , student.gpa ASC"
         )
 
+    def test_max_expression(self):
+        te = UnaryExpression(Student, SelectExpression(Student), self.table_expression)
+        me = MaxExpression(Student, te, lambda s: s.gpa)
+        sql = self.visitor.visit(me)
+        self.assertEqual(
+            sql,
+            u"SELECT MAX(student.gpa) FROM (SELECT student.student_id AS student_id, student.first_name AS first_name, student.gpa AS gpa, student.last_name AS last_name FROM student)"
+        )
+
+        te = UnaryExpression(Student, SelectExpression(Student, lambda s: s.gpa), self.table_expression)
+        me = MaxExpression(Student, te)
+        sql = self.visitor.visit(me)
+        self.assertEqual(
+            sql,
+            u"SELECT MAX(student.gpa) FROM (SELECT student.gpa AS gpa FROM student)"
+        )
+
 
 
 
