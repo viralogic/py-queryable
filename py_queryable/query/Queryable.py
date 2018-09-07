@@ -86,6 +86,10 @@ class Queryable(object):
         query = Queryable(MaxExpression(self.type, self.expression, func), self.provider)
         return self.provider.db_provider.execute_scalar(query.sql)
 
+    def min(self, func=None):
+        query = Queryable(MinExpression(self.type, self.expression, func), self.provider)
+        return self.provider.db_provider.execute_scalar(query.sql)
+
     def first(self):
         return self.take(1).as_enumerable().first()
 

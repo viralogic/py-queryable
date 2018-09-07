@@ -1,6 +1,7 @@
 import abc
 import meta
 import ast
+from collections import deque
 from ..visitors.lambda_visitors import SqlLambdaTranslator
 
 
@@ -48,14 +49,13 @@ class Expression(object):
         :param expression: An expression type
         :return: First expression that matches given expression else None
         """
-        q = self.children
+        q = deque(self.children)
         while len(q) > 0:
-            node = q[0]
+            node = q.popleft()
             if type(node) == expression:
                 return node
             for n in node.children:
                 q.append(n)
-            q.pop(0)
         return None
 
 
@@ -193,6 +193,21 @@ class MaxOperator(Operator):
         )
 
 
+class MinOperator(Operator):
+    def __init__(self, T, func):
+        super(MinOperator, self).__init__(T)
+        self.func = func
+
+    def visit(self, visitor):
+        return visitor.visit_MinOperator(self)
+
+    def __repr__(self):
+        return u"MinOp(T={0}, func={1})".format(
+            self.type.__class__.__name__,
+            ast.dump(LambdaExpression.parse(self.type, self.func))
+        )
+
+
 class MaxExpression(UnaryExpression):
     def __init__(self, T, exp, func=None):
         if func is None:
@@ -218,6 +233,30 @@ class MaxExpression(UnaryExpression):
             self.exp.__repr__()
         )
 
+class MinExpression(UnaryExpression):
+    def __init__(self, T, exp, func=None):
+        if func is None:
+            select = exp.find(SelectExpression)
+            if select is None or select.func is None:
+                raise AttributeError(
+                    u"Min expression with no lambda function must be preceded by a select with a lambda expression"
+                )
+            func = select.func
+        super(MinExpression, self).__init__(
+            T,
+            MinOperator(T, func),
+            exp
+        )
+
+    def visit(self, visitor):
+        return visitor.visit_MinExpression(self)
+
+    def __repr__(self):
+        return u"Min(T={0}, op={1}, exp={2}".format(
+            self.type.__class__.__name__,
+            self.op.__repr__(),
+            self.exp.__repr__()
+        )
 
 class WhereOperator(Operator):
     def __init__(self, T, func):

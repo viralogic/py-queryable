@@ -355,12 +355,19 @@ class QueryableTest(TestCase):
         self.assertEquals(ordered_students[2].gpa, 50)
         self.assertEquals(ordered_students[2].last_name, u"Fenske")
 
-    # def test_max(self):
-    #     students = self.conn.query(
-    #         UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
-    #     )
-    #     max_gpa = students.max(lambda s: s.gpa)
-    #     self.assertEquals(max_gpa, 50)
+    def test_max(self):
+        students = self.conn.query(
+            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
+        )
+        max_gpa = students.max(lambda s: s.gpa)
+        self.assertEquals(max_gpa, 50)
+
+    def test_min(self):
+        students = self.conn.query(
+            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
+        )
+        min_gpa = students.min(lambda s: s.gpa)
+        self.assertEquals(min_gpa, 9)
 
     def tearDown(self):
         if self.conn is not None:

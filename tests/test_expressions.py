@@ -160,6 +160,15 @@ class TestSqlExpressions(TestCase):
             u"SELECT MAX(student.gpa) FROM (SELECT student.gpa AS gpa FROM student)"
         )
 
+    def test_min_expression(self):
+        te = UnaryExpression(Student, SelectExpression(Student), self.table_expression)
+        me = MinExpression(Student, te, lambda s: s.gpa)
+        sql = self.visitor.visit(me)
+        self.assertEqual(
+            sql,
+            u"SELECT MIN(student.gpa) FROM (SELECT student.student_id AS student_id, student.first_name AS first_name, student.gpa AS gpa, student.last_name AS last_name FROM student)"
+        )
+
 
 
 
