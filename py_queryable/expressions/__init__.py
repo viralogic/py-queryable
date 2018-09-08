@@ -220,7 +220,7 @@ class MaxExpression(UnaryExpression):
         super(MaxExpression, self).__init__(
             T,
             MaxOperator(T, func),
-            exp
+            exp.exp
         )
 
     def visit(self, visitor):
@@ -245,7 +245,7 @@ class MinExpression(UnaryExpression):
         super(MinExpression, self).__init__(
             T,
             MinOperator(T, func),
-            exp
+            exp.exp
         )
 
     def visit(self, visitor):

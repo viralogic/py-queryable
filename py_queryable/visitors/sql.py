@@ -73,13 +73,13 @@ class SqlVisitor(Visitor):
         return u"SELECT MAX({0})".format(LambdaExpression.parse(expression.type, expression.func).body.sql)
 
     def visit_MaxExpression(self, expression):
-        return u"{0} FROM ({1})".format(expression.op.visit(self), expression.exp.visit(self))
+        return self.visit_UnaryExpression(expression)
 
     def visit_MinOperator(self, expression):
         return u"SELECT MIN({0})".format(LambdaExpression.parse(expression.type, expression.func).body.sql)
 
     def visit_MinExpression(self, expression):
-        return u"{0} FROM ({1})".format(expression.op.visit(self), expression.exp.visit(self))
+        return self.visit_UnaryExpression(expression)
 
 
 
