@@ -73,6 +73,57 @@ class MinExpression(UnaryExpression):
             self.exp.__repr__()
         )
 
+class SumExpression(UnaryExpression):
+    def __init__(self, T, exp, func=None):
+        if func is None:
+            select = exp.find(SelectExpression)
+            if select is None or select.func is None:
+                raise AttributeError(
+                    u"Sum expression with no lambda function must be preceded by a select with a lambda expression"
+                )
+            func = select.func
+        super(SumExpression, self).__init__(
+            T,
+            operators.SumOperator(T, func),
+            exp.exp
+        )
+
+    def visit(self, visitor):
+        return visitor.visit_SumExpression(self)
+
+    def __repr__(self):
+        return u"Sum(T={0}, op={1}, exp={2}".format(
+            self.type.__class__.__name__,
+            self.op.__repr__(),
+            self.exp.__repr()
+        )
+
+class AverageExpression(UnaryExpression):
+    def __init__(self, T, exp, func=None):
+        if func is None:
+            select = exp.find(SelectExpression)
+            if select is None or select.func is None:
+                raise AttributeError(
+                    u"Average expression with no lambda function must be preceded by a select with a lambda expression"
+                )
+            func = select.func
+        super(AverageExpression, self).__init__(
+            T,
+            operators.AveOperator(T, func),
+            exp.exp
+        )
+    
+    def visit(self, visitor):
+        return visitor.visit_AveExpression(self)
+
+    def __repr__(self):
+        return u"Average(T={0}, op={1}, exp={2}".format(
+            self.type.__class__.__name__,
+            self.op.__repr__(),
+            self.exp.__repr__()
+        )
+
+
 class WhereExpression(UnaryExpression):
     def __init__(self, T, func, exp):
         super(WhereExpression, self).__init__(T, operators.WhereOperator(T, func), exp)

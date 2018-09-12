@@ -81,6 +81,18 @@ class SqlVisitor(Visitor):
     def visit_MinExpression(self, expression):
         return self.visit_UnaryExpression(expression)
 
+    def visit_SumOperator(self, expression):
+        return u"SELECT SUM({0})".format(LambdaExpression.parse(expression.type, expression.func).body.sql)
+
+    def visit_SumExpression(self, expression):
+        return self.visit_UnaryExpression(expression)
+
+    def visit_AveOperator(self, expression):
+        return u"SELECT AVG({0})".format(LambdaExpression.parse(expression.type, expression.func).body.sql)
+
+    def visit_AveExpression(self, expression):
+        return self.visit_UnaryExpression(expression)
+
 
 
 

@@ -1,4 +1,4 @@
-from . import Operator
+from . import Operator, LambdaOperator
 
 class CountOperator(Operator):
     def __init__(self, T):
@@ -23,73 +23,51 @@ class SkipOperator(Operator):
     def visit(self, visitor):
         return visitor.visit_SkipOperator(self)
 
-class MaxOperator(Operator):
+class MaxOperator(LambdaOperator):
     def __init__(self, T, func):
-        super(MaxOperator, self).__init__(T)
-        self.func = func
+        super(MaxOperator, self).__init__(T, func)
 
     def visit(self, visitor):
         return visitor.visit_MaxOperator(self)
 
-    def __repr__(self):
-        return u"MaxOp(T={0}, func={1})".format(
-            self.type.__class__.__name__,
-            ast.dump(LambdaExpression.parse(self.type, self.func))
-        )
-
-class MinOperator(Operator):
+class MinOperator(LambdaOperator):
     def __init__(self, T, func):
-        super(MinOperator, self).__init__(T)
-        self.func = func
+        super(MinOperator, self).__init__(T, func)
 
     def visit(self, visitor):
         return visitor.visit_MinOperator(self)
 
-    def __repr__(self):
-        return u"MinOp(T={0}, func={1})".format(
-            self.type.__class__.__name__,
-            ast.dump(LambdaExpression.parse(self.type, self.func))
-        )
-
-class WhereOperator(Operator):
+class SumOperator(LambdaOperator):
     def __init__(self, T, func):
-        super(WhereOperator, self).__init__(T)
-        self.func = func
+        super(SumOperator, self).__init__(T, func)
+
+    def visit(self, visitor):
+        return visitor.visit_SumOperator(self)
+
+class AveOperator(LambdaOperator):
+    def __init__(self, T, func):
+        super(AveOperator, self).__init__(T, func)
+
+    def visit(self, visitor):
+        return visitor.visit_AveOperator(self)
+
+class WhereOperator(LambdaOperator):
+    def __init__(self, T, func):
+        super(WhereOperator, self).__init__(T, func)
 
     def visit(self, visitor):
         return visitor.visit_WhereOperator(self)
 
-    def __repr__(self):
-        return u"WhereOperator(T={0}, func={1})".format(
-            self.type.__class__.__name__,
-            ast.dump(LambdaExpression.parse(self.type, self.func))
-        )
-
-class OrderByOperator(Operator):
+class OrderByOperator(LambdaOperator):
     def __init__(self, T, func):
-        super(OrderByOperator, self).__init__(T)
-        self.func = func
+        super(OrderByOperator, self).__init__(T, func)
 
     def visit(self, visitor):
         return visitor.visit_OrderByOperator(self)
 
-    def __repr__(self):
-        return u"OrderByOperator(T={0}, func={1})".format(
-            self.type.__class__.name,
-            ast.dump(LambdaExpression.parse(self.type, self.func))
-        )
-
-
-class ThenByOperator(Operator):
+class ThenByOperator(LambdaOperator):
     def __init__(self, T, func):
-        super(ThenByOperator, self).__init__(T)
-        self.func = func
+        super(ThenByOperator, self).__init__(T, func)
 
     def visit(self, visitor):
         return visitor.visit_ThenByOperator(self)
-
-    def __repr__(self):
-        return u"ThenByOperator(T={0}, func={1})".format(
-            self.type.__class__.name,
-            ast.dump(LambdaExpression.parse(self.type, self.func))
-        )

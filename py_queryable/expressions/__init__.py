@@ -60,7 +60,6 @@ class Expression(object):
 
 
 class UnaryExpression(Expression):
-
     def __init__(self, T, op_exp, exp):
         super(UnaryExpression, self).__init__(T)
         self.op = op_exp
@@ -125,3 +124,19 @@ class Operator(Expression):
 
     def __repr__(self):
         return u"{0}(T={1})".format(self.__class__.__name__, self.type.__class__.__name__)
+
+class LambdaOperator(Operator):
+    def __init__(self, T, func):
+        super(LambdaOperator, self).__init__(T)
+        self.func = func
+
+    @abc.abstractmethod
+    def visit(self, visitor):
+        return NotImplementedError()
+
+    def __repr__(self):
+        return u"{0}(T={1}, func={2})".format(
+            self.__class__.__name__,
+            self.type.__class__.__name__,
+            ast.dump(LambdaExpression.parse(self.type, self.func))
+        )
