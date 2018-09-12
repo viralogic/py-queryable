@@ -1,4 +1,7 @@
 from ..expressions import *
+from ..expressions.operators import *
+from ..expressions.unary import *
+from ..expressions.sort import *
 from ..entity.proxy import DynamicModelProxy
 from py_linq import Enumerable
 from py_linq.exceptions import NoElementsError, NoMatchingElement, MoreThanOneMatchingElement
