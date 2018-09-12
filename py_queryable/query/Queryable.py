@@ -1,7 +1,7 @@
 from ..expressions import *
-from ..expressions.operators import *
-from ..expressions.unary import *
-from ..expressions.sort import *
+from ..expressions import operators
+from ..expressions import unary
+from ..expressions import sort
 from ..entity.proxy import DynamicModelProxy
 from py_linq import Enumerable
 from py_linq.exceptions import NoElementsError, NoMatchingElement, MoreThanOneMatchingElement
@@ -70,27 +70,27 @@ class Queryable(object):
         return Queryable(UnaryExpression(SelectExpression(self.type, func), self.expression), self.provider)
 
     def count(self):
-        query = Queryable(CountExpression(self.type, self.expression), self.provider)
+        query = Queryable(unary.CountExpression(self.type, self.expression), self.provider)
         return self.provider.db_provider.execute_scalar(query.sql)
 
     def take(self, limit):
-        if isinstance(self.__exp, SkipExpression):
+        if isinstance(self.__exp, unary.SkipExpression):
             self.expression.exp.op.limit = limit
             return self
         else:
-            return Queryable(TakeExpression(self.type, self.expression, limit), self.provider)
+            return Queryable(unary.TakeExpression(self.type, self.expression, limit), self.provider)
 
     def skip(self, offset):
-        if not isinstance(self.expression, TakeExpression):
-            self.__exp = TakeExpression(self.type, self.expression, -1)
-        return Queryable(SkipExpression(self.type, self.expression, offset), self.provider)
+        if not isinstance(self.expression, unary.TakeExpression):
+            self.__exp = unary.TakeExpression(self.type, self.expression, -1)
+        return Queryable(unary.SkipExpression(self.type, self.expression, offset), self.provider)
 
     def max(self, func=None):
-        query = Queryable(MaxExpression(self.type, self.expression, func), self.provider)
+        query = Queryable(unary.MaxExpression(self.type, self.expression, func), self.provider)
         return self.provider.db_provider.execute_scalar(query.sql)
 
     def min(self, func=None):
-        query = Queryable(MinExpression(self.type, self.expression, func), self.provider)
+        query = Queryable(unary.MinExpression(self.type, self.expression, func), self.provider)
         return self.provider.db_provider.execute_scalar(query.sql)
 
     def first(self):
@@ -104,19 +104,19 @@ class Queryable(object):
 
     def order_by(self, func):
         return OrderedQueryable(
-            OrderByExpression(self.type, func, self.expression),
+            unary.OrderByExpression(self.type, func, self.expression),
             self.provider
         )
 
     def order_by_descending(self, func):
         return OrderedQueryable(
-            OrderByDescendingExpression(self.type, func, self.expression),
+            sort.OrderByDescendingExpression(self.type, func, self.expression),
             self.provider
         )
 
     def where(self, func):
         return Queryable(
-            WhereExpression(self.type, func, self.expression), self.provider)
+            unary.WhereExpression(self.type, func, self.expression), self.provider)
 
     def single(self, func=None):
         result = self.where(func).to_list() if func is not None else self.to_list()
@@ -146,12 +146,12 @@ class OrderedQueryable(Queryable):
 
     def then_by(self, func):
         return OrderedQueryable(
-            ThenByExpression(self.type, func, self.expression),
+            unary.ThenByExpression(self.type, func, self.expression),
             self.provider
         )
 
     def then_by_descending(self, func):
         return OrderedQueryable(
-            ThenByDescendingExpression(self.type, func, self.expression),
+            sort.ThenByDescendingExpression(self.type, func, self.expression),
             self.provider
         )
