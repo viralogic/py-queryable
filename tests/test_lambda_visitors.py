@@ -68,11 +68,13 @@ class SqlLambdaTranslatorTest(TestCase):
         t = SqlLambdaTranslatorTest.translate(self.simple_in)
         self.assertIsInstance(t.body.ops[0], ast.In, u"Should be In instance")
         self.assertEquals(t.body.ops[0].sql, u"IN", u"In() node should have sql property of 'IN'")
+        self.assertEquals(t.body.ops[0].text_sql, u"LIKE")
 
     def test_NotIn(self):
         t = SqlLambdaTranslatorTest.translate(self.simple_not_in)
         self.assertIsInstance(t.body.ops[0], ast.NotIn, u"Should be NotIn instance")
         self.assertEquals(t.body.ops[0].sql, u"NOT IN", u"NotIn() node should have sql property of 'NOT IN'")
+        self.assertEquals(t.body.ops[0].text_sql, u"NOT LIKE")
 
     def test_plus(self):
         t = SqlLambdaTranslatorTest.translate(self.simple_plus)

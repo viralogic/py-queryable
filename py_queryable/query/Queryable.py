@@ -93,6 +93,23 @@ class Queryable(object):
         query = Queryable(unary.MinExpression(self.type, self.expression, func), self.provider)
         return self.provider.db_provider.execute_scalar(query.sql)
 
+    def sum(self, func=None):
+        query = Queryable(unary.SumExpression(self.type, self.expression, func), self.provider)
+        return self.provider.db_provider.execute_scalar(query.sql)
+
+    def average(self, func=None):
+        query = Queryable(unary.AvgExpression(self.type, self.expression, func), self.provider)
+        return self.provider.db_provider.execute_scalar(query.sql)
+
+    def any(self, func=None):
+        return self.count() > 0 if func is None else self.where(func).count() > 0
+    
+    def all(self, func=None):
+        if func is None:
+            return True
+        count = self.count()
+        return self.where(func).count() == count
+
     def first(self):
         return self.take(1).as_enumerable().first()
 

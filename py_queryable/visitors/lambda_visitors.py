@@ -50,9 +50,11 @@ class SqlLambdaTranslator(ast.NodeVisitor):
 
     def visit_In(self, node):
         node.sql = u"IN"
+        node.text_sql = u"LIKE"
 
     def visit_NotIn(self, node):
         node.sql = u"NOT IN"
+        node.text_sql = u"NOT LIKE"
 
     def visit_Attribute(self, node):
         model_column = Enumerable(self.type.get_column_members())\
@@ -78,9 +80,12 @@ class SqlLambdaTranslator(ast.NodeVisitor):
             comparator = u"'{0}'".format(node.comparators[0])
         else:
             comparator = node.comparators[0]
-        node.sql = u"{0} {1} {2}".format(
-            node.left.sql, node.ops[0].sql,
-            comparator
+        
+        operator = node.ops[0].sql
+        if operator == "IN" and isinstance(node.left.sql, unicode) and isinstance(comparator, unicode):
+            node.sql = u"{0} {1} '%{2}%'".format(comparator, node.ops[0].text_sql, node.left.sql)
+        else:
+            node.sql = u"{0} {1} {2}".format(node.left.sql, node.ops[0].sql, comparator
         )
 
     def visit_BoolOp(self, node):

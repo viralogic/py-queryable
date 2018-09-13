@@ -369,6 +369,42 @@ class QueryableTest(TestCase):
         min_gpa = students.min(lambda s: s.gpa)
         self.assertEquals(min_gpa, 9)
 
+    def test_sum(self):
+        students = self.conn.query(
+            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
+        )
+        sum_gpa = students.sum(lambda s: s.gpa)
+        self.assertEquals(sum_gpa, 59)
+
+    def test_sum_exceptions(self):
+        students = self.conn.query(
+            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
+        )
+        self.assertRaises(AttributeError, students.sum)
+
+    def test_avg(self):
+        students = self.conn.query(
+            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
+        )
+        avg_gpa = students.average(lambda s: s.gpa)
+        self.assertEqual(avg_gpa, 29.5)
+
+    def test_any(self):
+        students = self.conn.query(
+            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
+        )
+        self.assertTrue(students.any(lambda s: s.gpa < 50))
+        self.assertFalse(students.any(lambda s: s.gpa > 80))
+        self.assertTrue(students.any())
+
+    def test_all(self):
+        students = self.conn.query(
+            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
+        )
+        self.assertFalse(students.all(lambda s: s.gpa > 50))
+        self.assertTrue(students.all(lambda s: "k" in s.last_name))
+        self.assertTrue(students.all())
+
     def tearDown(self):
         if self.conn is not None:
             self.conn.connection.close()

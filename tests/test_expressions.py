@@ -200,3 +200,55 @@ class TestSqlExpressions(TestCase):
             sql,
             u"SELECT MIN(student.gpa) FROM student"
         )
+
+        te = expressions.UnaryExpression(
+            Student,
+            expressions.SelectExpression(Student, lambda s: s.gpa), self.table_expression)
+        me = unary.MinExpression(Student, te)
+        sql = self.visitor.visit(me)
+        self.assertEqual(
+            sql,
+            u"SELECT MIN(student.gpa) FROM student"
+        )
+
+    def test_sum_expression(self):
+        te = expressions.UnaryExpression(
+            Student,
+            expressions.SelectExpression(Student), self.table_expression)
+        me = unary.SumExpression(Student, te, lambda s: s.gpa)
+        sql = self.visitor.visit(me)
+        self.assertEqual(
+            sql,
+            u"SELECT SUM(student.gpa) FROM student"
+        )
+
+        te = expressions.UnaryExpression(
+            Student,
+            expressions.SelectExpression(Student, lambda s: s.gpa), self.table_expression)
+        me = unary.SumExpression(Student, te)
+        sql = self.visitor.visit(me)
+        self.assertEqual(
+            sql,
+            u"SELECT SUM(student.gpa) FROM student"
+        )
+
+    def test_avg_expression(self):
+        te = expressions.UnaryExpression(
+            Student,
+            expressions.SelectExpression(Student), self.table_expression)
+        me = unary.AvgExpression(Student, te, lambda s: s.gpa)
+        sql = self.visitor.visit(me)
+        self.assertEqual(
+            sql,
+            u"SELECT AVG(student.gpa) FROM student"
+        )
+
+        te = expressions.UnaryExpression(
+            Student,
+            expressions.SelectExpression(Student, lambda s: s.gpa), self.table_expression)
+        me = unary.AvgExpression(Student, te)
+        sql = self.visitor.visit(me)
+        self.assertEqual(
+            sql,
+            u"SELECT AVG(student.gpa) FROM student"
+        )

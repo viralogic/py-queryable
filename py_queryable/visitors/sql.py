@@ -90,7 +90,7 @@ class SqlVisitor(Visitor):
     def visit_AveOperator(self, expression):
         return u"SELECT AVG({0})".format(LambdaExpression.parse(expression.type, expression.func).body.sql)
 
-    def visit_AveExpression(self, expression):
+    def visit_AvgExpression(self, expression):
         return self.visit_UnaryExpression(expression)
 
 

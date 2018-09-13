@@ -98,7 +98,7 @@ class SumExpression(UnaryExpression):
             self.exp.__repr()
         )
 
-class AverageExpression(UnaryExpression):
+class AvgExpression(UnaryExpression):
     def __init__(self, T, exp, func=None):
         if func is None:
             select = exp.find(SelectExpression)
@@ -107,14 +107,14 @@ class AverageExpression(UnaryExpression):
                     u"Average expression with no lambda function must be preceded by a select with a lambda expression"
                 )
             func = select.func
-        super(AverageExpression, self).__init__(
+        super(AvgExpression, self).__init__(
             T,
             operators.AveOperator(T, func),
             exp.exp
         )
     
     def visit(self, visitor):
-        return visitor.visit_AveExpression(self)
+        return visitor.visit_AvgExpression(self)
 
     def __repr__(self):
         return u"Average(T={0}, op={1}, exp={2}".format(
