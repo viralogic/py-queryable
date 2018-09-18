@@ -1,4 +1,4 @@
-from ..expressions import *
+from ..expressions import LambdaExpression, UnaryExpression, SelectExpression
 from ..expressions import operators
 from ..expressions import unary
 from ..expressions import sort
@@ -67,7 +67,7 @@ class Queryable(object):
         return self.provider.provider_visitor.visit(self.expression)
 
     def select(self, func):
-        return Queryable(UnaryExpression(SelectExpression(self.type, func), self.expression), self.provider)
+        return Queryable(UnaryExpression(self.type, SelectExpression(self.type, func), self.expression), self.provider)
 
     def count(self):
         query = Queryable(unary.CountExpression(self.type, self.expression), self.provider)
@@ -147,7 +147,7 @@ class Queryable(object):
     def single_or_default(self, func=None):
         try:
             return self.single(func)
-        except NoMatchingElement as err:
+        except NoMatchingElement:
             return None
 
     def as_enumerable(self):
