@@ -7,7 +7,7 @@ from . import Visitor
 
 class SqlVisitor(Visitor):
     
-    def visit_SelectExpression(self, expression):
+    def visit_SelectOperator(self, expression):
         if expression.func is not None:
             t = LambdaExpression.parse(expression.type, expression.func)
             return u"SELECT {0}".format(t.body.sql if not isinstance(t.body, ast.Attribute) else t.body.select_sql)

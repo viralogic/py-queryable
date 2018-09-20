@@ -1,5 +1,6 @@
 import abc
-from . import Expression, UnaryExpression, TableExpression
+import ast
+from . import Expression, UnaryExpression, TableExpression, LambdaExpression
 
 class LambdaOperator(Expression):
     __class_type__ = None
@@ -15,7 +16,7 @@ class LambdaOperator(Expression):
             t = self.exp.find(TableExpression)
             if t is None:
                 raise Exception("Cannot find TableExpression in {0}".format(self.exp.__repr__()))
-            self.__class_type__ = t
+            self.__class_type__ = t.type
         return self.__class_type__
 
     def __repr__(self):
@@ -51,7 +52,7 @@ class SkipOperator(UnaryExpression):
 class SelectOperator(LambdaOperator):
 
     def __init__(self, exp, func=None):
-        super(SelectExpression, self).__init__(exp, func)
+        super(SelectOperator, self).__init__(exp, func)
 
     def visit(self, visitor):
         return visitor.visit_SelectOperator(self)
