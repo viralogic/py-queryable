@@ -6,11 +6,6 @@ class SqlLambdaTranslator(ast.NodeVisitor):
 
     def __init__(self, T):
         super(SqlLambdaTranslator, self).__init__()
-        self.__class_type = T
-
-    @property
-    def type(self):
-        return self.__class_type
 
     def visit_Eq(self, node):
         node.sql = u"="
@@ -57,14 +52,15 @@ class SqlLambdaTranslator(ast.NodeVisitor):
         node.text_sql = u"NOT LIKE"
 
     def visit_Attribute(self, node):
-        model_column = Enumerable(self.type.get_column_members())\
-            .single_or_default(lambda c: c[0].lower() == node.attr.lower())
+        # model_column = Enumerable(self.type.get_column_members())\
+        #     .single_or_default(lambda c: c[0].lower() == node.attr.lower())
 
-        if model_column is None:
-            raise AttributeError(u"No property named {0} can be found for {1}".format(node.attr, self.type.__name__))
-        node.sql = u"{0}.{1}".format(self.type.table_name(), model_column[1].column_name)
-        node.select_sql = u"{0} AS {1}".format(node.sql, model_column[0])
-        node.type = model_column[1].column_type
+        # if model_column is None:
+        #     raise AttributeError(u"No property named {0} can be found for {1}".format(node.attr, self.type.__name__))
+        # node.sql = u"{0}.{1}".format(self.type.table_name(), model_column[1].column_name)
+        # node.select_sql = u"{0} AS {1}".format(node.sql, model_column[0])
+        # node.type = model_column[1].column_type
+        raise NotImplementedError()
 
     def visit_And(self, node):
         node.sql = u"AND"

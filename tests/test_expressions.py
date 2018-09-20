@@ -11,10 +11,9 @@ class TestSqlExpressions(TestCase):
 
     def setUp(self):
         self.visitor = SqlVisitor()
-        self.table_expression = expressions.TableExpression(Student)
 
     def test_select_expression(self):
-        se = expressions.UnaryExpression(Student, expressions.SelectExpression(Student, lambda x: x.first_name), self.table_expression)
+        se = unary.UnaryExpression(Student, unary.SelectExpression(Student, lambda x: x.first_name), self.table_expression)
         sql = self.visitor.visit(se)
         correct = u"SELECT student.first_name AS first_name FROM student"
         self.assertEqual(
@@ -24,7 +23,7 @@ class TestSqlExpressions(TestCase):
         )
 
     def test_select_all(self):
-        se = expressions.UnaryExpression(Student, expressions.SelectExpression(Student), self.table_expression)
+        se = unary.UnaryExpression(Student, unary.SelectExpression(Student), self.table_expression)
         sql = self.visitor.visit(se)
         self.assertTrue(sql.startswith(u"SELECT"))
         self.assertTrue(sql.endswith(u"FROM student"))
@@ -62,7 +61,7 @@ class TestSqlExpressions(TestCase):
     def test_count_expression(self):
         ce = unary.CountExpression(
             Student, 
-            expressions.UnaryExpression(Student, expressions.SelectExpression(Student), self.table_expression)
+            expressions.UnaryExpression(Student, unary.SelectExpression(Student), self.table_expression)
         )
         sql = self.visitor.visit(ce)
         self.assertEqual(
@@ -71,9 +70,9 @@ class TestSqlExpressions(TestCase):
         )
 
     def test_take_expression(self):
-        qe = expressions.UnaryExpression(
+        qe = unary.UnaryExpression(
             Student,
-            expressions.SelectExpression(Student, lambda s: s.first_name), self.table_expression)
+            unary.SelectExpression(Student, lambda s: s.first_name), self.table_expression)
         te = unary.TakeExpression(Student, qe, 1)
         sql = self.visitor.visit(te)
         self.assertEqual(sql, u"SELECT student.first_name AS first_name FROM student LIMIT 1")
@@ -81,14 +80,14 @@ class TestSqlExpressions(TestCase):
     def test_skip_expression(self):
         se = unary.SkipExpression(
             Student,
-            expressions.UnaryExpression(Student, expressions.SelectExpression(Student, lambda s: s.first_name), self.table_expression), 1)
+            expressions.UnaryExpression(Student, unary.SelectExpression(Student, lambda s: s.first_name), self.table_expression), 1)
         sql = self.visitor.visit(se)
         self.assertEqual(sql, u"SELECT student.first_name AS first_name FROM student OFFSET 1")
 
     def test_skip_limit_expression(self):
-        qe = expressions.UnaryExpression(
+        qe = unary.UnaryExpression(
             Student, 
-            expressions.SelectExpression(Student, lambda s: s.first_name), self.table_expression)
+            unary.SelectExpression(Student, lambda s: s.first_name), self.table_expression)
         se = unary.SkipExpression(Student, qe, 1)
         te = unary.TakeExpression(Student, se, 1)
         sql = self.visitor.visit(te)
@@ -105,17 +104,17 @@ class TestSqlExpressions(TestCase):
         self.assertEqual(sql, u"ORDER BY student.first_name")
 
     def test_order_by_expression(self):
-        te = expressions.UnaryExpression(
+        te = unary.UnaryExpression(
             Student, 
-            expressions.SelectExpression(Student, lambda s: s.first_name), self.table_expression)
+            unary.SelectExpression(Student, lambda s: s.first_name), self.table_expression)
         obe = unary.OrderByExpression(Student, lambda s: s.first_name, te)
         sql = self.visitor.visit(obe)
         self.assertEqual(sql, u"SELECT student.first_name AS first_name FROM student ORDER BY student.first_name ASC")
 
     def test_then_by_expression(self):
-        te = expressions.UnaryExpression(
+        te = unary.UnaryExpression(
             Student,
-            expressions.SelectExpression(Student, lambda s: (s.first_name, s.gpa)), self.table_expression)
+            unary.SelectExpression(Student, lambda s: (s.first_name, s.gpa)), self.table_expression)
         tbe = unary.ThenByExpression(
             Student, 
             lambda s: s.gpa,
@@ -134,17 +133,17 @@ class TestSqlExpressions(TestCase):
             u"SELECT student.first_name AS first_name, student.gpa AS gpa FROM student ORDER BY student.first_name ASC , student.gpa DESC")
 
     def test_order_by_descending_expression(self):
-        te = expressions.UnaryExpression(
+        te = unary.UnaryExpression(
             Student,
-            expressions.SelectExpression(Student, lambda s: s.first_name), self.table_expression)
+            unary.SelectExpression(Student, lambda s: s.first_name), self.table_expression)
         obe = sort.OrderByDescendingExpression(Student, lambda s: s.first_name, te)
         sql = self.visitor.visit(obe)
         self.assertEqual(sql, u"SELECT student.first_name AS first_name FROM student ORDER BY student.first_name DESC")
 
     def test_then_by_descending_expression(self):
-        te = expressions.UnaryExpression(
+        te = unary.UnaryExpression(
             Student, 
-            expressions.SelectExpression(Student, lambda s: (s.first_name, s.gpa)), self.table_expression)
+            unary.SelectExpression(Student, lambda s: (s.first_name, s.gpa)), self.table_expression)
         tbde = sort.ThenByDescendingExpression(
             Student,
             lambda s: s.gpa,
@@ -169,9 +168,9 @@ class TestSqlExpressions(TestCase):
         )
 
     def test_max_expression(self):
-        te = expressions.UnaryExpression(
+        te = unary.UnaryExpression(
             Student,
-            expressions.SelectExpression(Student),
+            unary.SelectExpression(Student),
             self.table_expression)
         me = unary.MaxExpression(Student, te, lambda s: s.gpa)
         sql = self.visitor.visit(me)
@@ -180,9 +179,9 @@ class TestSqlExpressions(TestCase):
             u"SELECT MAX(student.gpa) FROM student"
         )
 
-        te = expressions.UnaryExpression(
+        te = unary.UnaryExpression(
             Student,
-            expressions.SelectExpression(Student, lambda s: s.gpa), self.table_expression)
+            unary.SelectExpression(Student, lambda s: s.gpa), self.table_expression)
         me = unary.MaxExpression(Student, te)
         sql = self.visitor.visit(me)
         self.assertEqual(
@@ -191,9 +190,9 @@ class TestSqlExpressions(TestCase):
         )
 
     def test_min_expression(self):
-        te = expressions.UnaryExpression(
+        te = unary.UnaryExpression(
             Student,
-            expressions.SelectExpression(Student), self.table_expression)
+            unary.SelectExpression(Student), self.table_expression)
         me = unary.MinExpression(Student, te, lambda s: s.gpa)
         sql = self.visitor.visit(me)
         self.assertEqual(
@@ -201,9 +200,9 @@ class TestSqlExpressions(TestCase):
             u"SELECT MIN(student.gpa) FROM student"
         )
 
-        te = expressions.UnaryExpression(
+        te = unary.UnaryExpression(
             Student,
-            expressions.SelectExpression(Student, lambda s: s.gpa), self.table_expression)
+            unary.SelectExpression(Student, lambda s: s.gpa), self.table_expression)
         me = unary.MinExpression(Student, te)
         sql = self.visitor.visit(me)
         self.assertEqual(
@@ -212,9 +211,9 @@ class TestSqlExpressions(TestCase):
         )
 
     def test_sum_expression(self):
-        te = expressions.UnaryExpression(
+        te = unary.UnaryExpression(
             Student,
-            expressions.SelectExpression(Student), self.table_expression)
+            unary.SelectExpression(Student), self.table_expression)
         me = unary.SumExpression(Student, te, lambda s: s.gpa)
         sql = self.visitor.visit(me)
         self.assertEqual(
@@ -222,9 +221,9 @@ class TestSqlExpressions(TestCase):
             u"SELECT SUM(student.gpa) FROM student"
         )
 
-        te = expressions.UnaryExpression(
+        te = unary.UnaryExpression(
             Student,
-            expressions.SelectExpression(Student, lambda s: s.gpa), self.table_expression)
+            unary.SelectExpression(Student, lambda s: s.gpa), self.table_expression)
         me = unary.SumExpression(Student, te)
         sql = self.visitor.visit(me)
         self.assertEqual(
@@ -233,22 +232,19 @@ class TestSqlExpressions(TestCase):
         )
 
     def test_avg_expression(self):
-        te = expressions.UnaryExpression(
-            Student,
-            expressions.SelectExpression(Student), self.table_expression)
-        me = unary.AvgExpression(Student, te, lambda s: s.gpa)
-        sql = self.visitor.visit(me)
+        te = operators.AveOperator(expressions.TableExpression(Student), lambda s: s.gpa)
+        sql = self.visitor.visit(te)
         self.assertEqual(
             sql,
             u"SELECT AVG(student.gpa) FROM student"
         )
 
-        te = expressions.UnaryExpression(
-            Student,
-            expressions.SelectExpression(Student, lambda s: s.gpa), self.table_expression)
-        me = unary.AvgExpression(Student, te)
-        sql = self.visitor.visit(me)
-        self.assertEqual(
-            sql,
-            u"SELECT AVG(student.gpa) FROM student"
-        )
+        # te = unary.UnaryExpression(
+        #     Student,
+        #     unary.SelectExpression(Student, lambda s: s.gpa), self.table_expression)
+        # me = unary.AvgExpression(Student, te)
+        # sql = self.visitor.visit(me)
+        # self.assertEqual(
+        #     sql,
+        #     u"SELECT AVG(student.gpa) FROM student"
+        # )

@@ -1,14 +1,12 @@
 import ast
 from py_linq import Enumerable
-from ..visitors import Visitor
-from ..expressions import LambdaExpression, SelectExpression
+from ..expressions import LambdaExpression
+from ..expressions.unary import SelectExpression
+from . import Visitor
 
 
 class SqlVisitor(Visitor):
-
-    def visit_UnaryExpression(self, expression):
-        return u"{0} {1}".format(expression.op.visit(self), expression.exp.visit(self))
-
+    
     def visit_SelectExpression(self, expression):
         if expression.func is not None:
             t = LambdaExpression.parse(expression.type, expression.func)

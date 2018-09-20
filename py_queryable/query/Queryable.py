@@ -1,4 +1,4 @@
-from ..expressions import LambdaExpression, UnaryExpression, SelectExpression
+from ..expressions import LambdaExpression
 from ..expressions import operators
 from ..expressions import unary
 from ..expressions import sort
