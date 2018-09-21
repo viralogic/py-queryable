@@ -47,44 +47,54 @@ class TestSqlExpressions(TestCase):
         )
 
     def test_count_expression(self):
-        ce = unary.CountExpression(
-            Student, 
-            expressions.UnaryExpression(Student, unary.SelectExpression(Student), self.table_expression)
-        )
+        ce = operators.CountOperator(expressions.TableExpression(Student))
         sql = self.visitor.visit(ce)
         self.assertEqual(
             sql,
-            u"SELECT COUNT(*) FROM (SELECT student.student_id AS student_id, student.first_name AS first_name, student.gpa AS gpa, student.last_name AS last_name FROM student)"
+            u"SELECT COUNT(*) FROM student"
+        )
+
+        ce = operators.CountOperator(operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.student_id))
+        sql = self.visitor.visit(ce)
+        self.assertEqual(
+            sql,
+            u"SELECT COUNT(*) FROM (SELECT s.student_id FROM student s)"
         )
 
     def test_take_expression(self):
-        qe = unary.UnaryExpression(
-            Student,
-            unary.SelectExpression(Student, lambda s: s.first_name), self.table_expression)
-        te = unary.TakeExpression(Student, qe, 1)
+        te = operators.TakeOperator(operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.first_name), 1)
         sql = self.visitor.visit(te)
-        self.assertEqual(sql, u"SELECT student.first_name AS first_name FROM student LIMIT 1")
+        self.assertEqual(sql, u"SELECT s.first_name FROM student s LIMIT 1")
+
+        te = operators.TakeOperator(expressions.TableExpression(Student), 1)
+        sql = self.visitor.visit(te)
+        self.assertEqual(sql, u'SELECT student.student_id, student.first_name, student.gpa, student.last_name FROM student LIMIT 1')
 
     def test_skip_expression(self):
-        se = unary.SkipExpression(
-            Student,
-            expressions.UnaryExpression(Student, unary.SelectExpression(Student, lambda s: s.first_name), self.table_expression), 1)
+        se = operators.SkipOperator(operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.first_name), 1)
         sql = self.visitor.visit(se)
-        self.assertEqual(sql, u"SELECT student.first_name AS first_name FROM student OFFSET 1")
+        self.assertEqual(sql, u"SELECT s.first_name FROM student s OFFSET 1")
+
+        se = operators.SkipOperator(expressions.TableExpression(Student), 1)
+        sql = self.visitor.visit(se)
+        self.assertEquals(sql, u'SELECT student.student_id, student.first_name, student.gpa, student.last_name FROM student OFFSET 1')
 
     def test_skip_limit_expression(self):
-        qe = unary.UnaryExpression(
-            Student, 
-            unary.SelectExpression(Student, lambda s: s.first_name), self.table_expression)
-        se = unary.SkipExpression(Student, qe, 1)
-        te = unary.TakeExpression(Student, se, 1)
-        sql = self.visitor.visit(te)
-        self.assertEqual(sql, u"SELECT student.first_name AS first_name FROM student OFFSET 1 LIMIT 1")
+        qe = operators.TakeOperator(operators.SkipOperator(operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.first_name), 1), 1)
+        sql = self.visitor.visit(qe)
+        self.assertEqual(sql, u"SELECT s.first_name FROM student s OFFSET 1 LIMIT 1")
 
-        te = unary.TakeExpression(Student, qe, 1)
-        se = unary.SkipExpression(Student, te, 1)
-        sql = self.visitor.visit(se)
-        self.assertEqual(sql, u"SELECT student.first_name AS first_name FROM student LIMIT 1 OFFSET 1")
+        qe = operators.TakeOperator(operators.SkipOperator(expressions.TableExpression(Student), 1), 1)
+        sql = self.visitor.visit(qe)
+        self.assertEqual(sql, u'SELECT student.student_id, student.first_name, student.gpa, student.last_name FROM student OFFSET 1 LIMIT 1')
+
+        qe = operators.SkipOperator(operators.TakeOperator(operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.first_name), 1), 1)
+        sql = self.visitor.visit(qe)
+        self.assertEqual(sql, u"SELECT s.first_name FROM student s LIMIT 1 OFFSET 1")
+
+        qe = operators.SkipOperator(operators.TakeOperator(expressions.TableExpression(Student), 1), 1)
+        sql = self.visitor.visit(qe)
+        self.assertEqual(sql, u'SELECT student.student_id, student.first_name, student.gpa, student.last_name FROM student LIMIT 1 OFFSET 1')
 
     def test_order_by_operator(self):
         obo = operators.OrderByOperator(Student, lambda x: x.first_name)

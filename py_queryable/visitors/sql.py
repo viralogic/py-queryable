@@ -1,6 +1,7 @@
 import ast
 from py_linq import Enumerable
 from ..expressions import LambdaExpression, TableExpression
+from ..expressions import operators
 from . import Visitor
 
 
@@ -26,27 +27,22 @@ class SqlVisitor(Visitor):
         return u"FROM {0}".format(expression.type.table_name())
 
     def visit_CountOperator(self, expression):
-        return u"SELECT COUNT(*)"
+        result = expression.exp.visit(self)
+        if type(expression.exp) != TableExpression:
+            result = u"FROM ({0})".format(result)
+        return u"SELECT COUNT(*) {0}".format(result)
 
     def visit_TakeOperator(self, expression):
-        return u"LIMIT {0}".format(expression.limit)
-
-    def visit_TakeExpression(self, expression):
-        return u"{0} {1}".format(expression.exp.visit(self), expression.op.visit(self))
+        select = expression.find(operators.SelectOperator)
+        if select is None:
+            expression.exp = operators.SelectOperator(expression.exp)
+        return u"{0} LIMIT {1}".format(expression.exp.visit(self), expression.limit)
 
     def visit_SkipOperator(self, expression):
-        return u"OFFSET {0}".format(expression.skip)
-
-    def visit_SkipExpression(self, expression):
-        return u"{0} {1}".format(expression.exp.visit(self), expression.op.visit(self))
-
-    def visit_CountExpression(self, expression):
-        return u"{0} FROM ({1})".format(expression.op.visit(self), expression.exp.visit(self))
-
-    
-
-    def visit_WhereExpression(self, expression):
-        return u"{0} {1}".format(expression.exp.visit(self), expression.op.visit(self))
+        select = expression.find(operators.SelectOperator)
+        if select is None:
+            expression.exp = operators.SelectOperator(expression.exp)
+        return u"{0} OFFSET {1}".format(expression.exp.visit(self), expression.skip)
 
     def visit_OrderByOperator(self, expression):
         t = LambdaExpression.parse(expression.type, expression.func)

@@ -67,8 +67,6 @@ class SkipOperator(UnaryExpression):
     def visit(self, visitor):
         return visitor.visit_SkipOperator(self)
 
-
-
 class MaxOperator(LambdaOperator):
     def __init__(self, exp, func):
         super(MaxOperator, self).__init__(exp, func)
