@@ -1,7 +1,6 @@
 import ast
 from py_linq import Enumerable
-from ..expressions import LambdaExpression
-from ..expressions.unary import SelectExpression
+from ..expressions import LambdaExpression, TableExpression
 from . import Visitor
 
 
@@ -10,15 +9,18 @@ class SqlVisitor(Visitor):
     def visit_SelectOperator(self, expression):
         if expression.func is not None:
             t = LambdaExpression.parse(expression.type, expression.func)
-            return u"SELECT {0}".format(t.body.sql if not isinstance(t.body, ast.Attribute) else t.body.select_sql)
+            return u"SELECT {0} {1} {2}".format(t.body.sql, expression.exp.visit(self), t.body.id)
         else:
             cols = Enumerable(expression.type.inspect_columns())
             if not cols.count() > 0:
                 raise TypeError(u"{0} has no defined columns in model".format(expression.type.__class__.__name__))
             sql = cols.select(
-                lambda c: u"{0}.{1} AS {2}".format(expression.type.table_name(), c[1].column_name, c[0])
+                lambda c: u"{0}.{1}".format(expression.type.table_name(), c[1].column_name)
             )
-            return u"SELECT {0}".format(u", ".join(sql))
+            return u"SELECT {0} {1}".format(u", ".join(sql), expression.exp.visit(self))
+
+    def visit_WhereOperator(self, expression):
+        return u"{0} WHERE {1}".format(expression.exp.visit(self), LambdaExpression.parse(expression.type, expression.func).body.sql)
 
     def visit_TableExpression(self, expression):
         return u"FROM {0}".format(expression.type.table_name())
@@ -41,8 +43,7 @@ class SqlVisitor(Visitor):
     def visit_CountExpression(self, expression):
         return u"{0} FROM ({1})".format(expression.op.visit(self), expression.exp.visit(self))
 
-    def visit_WhereOperator(self, expression):
-        return u"WHERE {0}".format(LambdaExpression.parse(expression.type, expression.func).body.sql)
+    
 
     def visit_WhereExpression(self, expression):
         return u"{0} {1}".format(expression.exp.visit(self), expression.op.visit(self))

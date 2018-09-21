@@ -13,7 +13,7 @@ class LambdaExpression(object):
     @staticmethod
     def parse(T, func):
         tree = meta.decompiler.decompile_func(func)
-        translator = SqlLambdaTranslator(T)
+        translator = SqlLambdaTranslator()
         translator.generic_visit(tree)
         return tree
 

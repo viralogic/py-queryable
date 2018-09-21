@@ -3,21 +3,24 @@ import ast
 from . import Expression, UnaryExpression, TableExpression, LambdaExpression
 
 class LambdaOperator(Expression):
-    __class_type__ = None
-
     def __init__(self, exp, func):
         super(LambdaOperator, self).__init__()
         self.exp = exp
         self.func = func
+        self.class_type = None
+
+    @property
+    def children(self):
+        return [self.exp]
 
     @property
     def type(self):
-        if self.__class_type__ is None:
-            t = self.exp.find(TableExpression)
+        if self.class_type is None:
+            t = self.find(TableExpression)
             if t is None:
                 raise Exception("Cannot find TableExpression in {0}".format(self.exp.__repr__()))
-            self.__class_type__ = t.type
-        return self.__class_type__
+            self.class_type = t.type
+        return self.class_type
 
     def __repr__(self):
         return u"{0}(T={1}, func={2})".format(
@@ -25,6 +28,21 @@ class LambdaOperator(Expression):
             self.type.__class__.__name__,
             ast.dump(LambdaExpression.parse(self.type, self.func))
         )
+
+class SelectOperator(LambdaOperator):
+    def __init__(self, exp, func=None):
+        super(SelectOperator, self).__init__(exp, func)
+
+    def visit(self, visitor):
+        return visitor.visit_SelectOperator(self)
+
+class WhereOperator(LambdaOperator):
+    def __init__(self, exp, func):
+        super(WhereOperator, self).__init__(exp, func)
+
+    def visit(self, visitor):
+        return visitor.visit_WhereOperator(self)
+
 
 class CountOperator(UnaryExpression):
     def __init__(self, exp):
@@ -49,13 +67,7 @@ class SkipOperator(UnaryExpression):
     def visit(self, visitor):
         return visitor.visit_SkipOperator(self)
 
-class SelectOperator(LambdaOperator):
 
-    def __init__(self, exp, func=None):
-        super(SelectOperator, self).__init__(exp, func)
-
-    def visit(self, visitor):
-        return visitor.visit_SelectOperator(self)
 
 class MaxOperator(LambdaOperator):
     def __init__(self, exp, func):

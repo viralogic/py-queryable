@@ -1,10 +1,6 @@
 from . import UnaryExpression
 from . import operators
 
-class SelectExpression(UnaryExpression):
-    def __init__(self, exp):
-        super(SelectExpression, self).__init__(exp)
-
 class CountExpression(UnaryExpression):
 
     def __init__(self, exp):

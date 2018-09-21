@@ -4,7 +4,7 @@ from py_linq import Enumerable
 
 class SqlLambdaTranslator(ast.NodeVisitor):
 
-    def __init__(self, T):
+    def __init__(self):
         super(SqlLambdaTranslator, self).__init__()
 
     def visit_Eq(self, node):
@@ -52,15 +52,8 @@ class SqlLambdaTranslator(ast.NodeVisitor):
         node.text_sql = u"NOT LIKE"
 
     def visit_Attribute(self, node):
-        # model_column = Enumerable(self.type.get_column_members())\
-        #     .single_or_default(lambda c: c[0].lower() == node.attr.lower())
-
-        # if model_column is None:
-        #     raise AttributeError(u"No property named {0} can be found for {1}".format(node.attr, self.type.__name__))
-        # node.sql = u"{0}.{1}".format(self.type.table_name(), model_column[1].column_name)
-        # node.select_sql = u"{0} AS {1}".format(node.sql, model_column[0])
-        # node.type = model_column[1].column_type
-        raise NotImplementedError()
+        node.sql = u"{0}.{1}".format(node.value.id, node.attr)
+        node.id = node.value.id
 
     def visit_And(self, node):
         node.sql = u"AND"
@@ -111,21 +104,14 @@ class SqlLambdaTranslator(ast.NodeVisitor):
 
     def visit_List(self, node):
         self.generic_visit(node)
-        node.sql = u", ".join(Enumerable(node.elts).select(lambda x: x.select_sql))
-        node.type = list
+        node.sql = u", ".join(Enumerable(node.elts).select(lambda x: x.sql))
 
     def visit_Tuple(self, node):
         self.visit_List(node)
-        node.type = tuple
 
     def visit_Dict(self, node):
         self.generic_visit(node)
-        for i in range(0, len(node.values), 1):
-            attr = node.values[i]
-            key = node.keys[i] if not hasattr(node.keys[i], u"sql") else node.keys[i].sql
-            attr.select_sql = u"{0} AS '{1}'".format(attr.sql, key)
-        node.sql = u", ".join(Enumerable(node.values).select(lambda x: x.select_sql))
-        node.type = dict
+        node.sql = u", ".join(Enumerable(node.values).select(lambda x: x.sql))
 
 
 
