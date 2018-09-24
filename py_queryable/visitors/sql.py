@@ -8,17 +8,29 @@ from . import Visitor
 class SqlVisitor(Visitor):
     
     def visit_SelectOperator(self, expression):
+        cols = Enumerable(expression.type.inspect_columns())
+        if not cols.count() > 0:
+                raise TypeError(u"{0} has no defined columns in model".format(expression.type.__class__.__name__))
         if expression.func is not None:
             t = LambdaExpression.parse(expression.type, expression.func)
+            if not hasattr(t.body, "sql"):
+                sql = cols.select(
+                    lambda c: u"{0}.{1}".format(t.body.id, c[1].column_name)
+                )
+                t.body.sql = u", ".join(sql)
             return u"SELECT {0} {1} {2}".format(t.body.sql, expression.exp.visit(self), t.body.id)
         else:
-            cols = Enumerable(expression.type.inspect_columns())
-            if not cols.count() > 0:
-                raise TypeError(u"{0} has no defined columns in model".format(expression.type.__class__.__name__))
             sql = cols.select(
                 lambda c: u"{0}.{1}".format(expression.type.table_name(), c[1].column_name)
             )
-            return u"SELECT {0} {1}".format(u", ".join(sql), expression.exp.visit(self))
+            return u"SELECT {0} {1} {2}".format(
+                u", ".join(sql),
+                expression.exp.visit(self),
+                expression.type.table_name()
+            )
+
+    def visit_AliasOperator(self, expression):
+        return "({0}) {1}".format(expression.exp.visit(self), expression.alias)
 
     def visit_WhereOperator(self, expression):
         return u"{0} WHERE {1}".format(expression.exp.visit(self), LambdaExpression.parse(expression.type, expression.func).body.sql)
@@ -65,10 +77,14 @@ class SqlVisitor(Visitor):
         return self.visit_OrderByDescendingExpression(expression)
 
     def visit_MaxOperator(self, expression):
-        return u"SELECT MAX({0})".format(LambdaExpression.parse(expression.type, expression.func).body.sql)
-
-    def visit_MaxExpression(self, expression):
-        return self.visit_UnaryExpression(expression)
+        if expression.func is None:
+            if type(expression.exp) != operators.SelectOperator or (type(expression.exp) == operators.SelectOperator and expression.exp.func is None):
+                raise AttributeError("lambda function is required for SelectOperator")
+            expression.func = expression.exp.func
+        t = LambdaExpression.parse(expression.type, expression.func)
+        return u"SELECT MAX({0}) FROM {1}".format(
+            t.body.sql,
+            operators.AliasOperator(t.body.id, expression.exp).visit(self) if type(expression.exp) == operators.SelectOperator else operators.AliasOperator(t.body.id, operators.SelectOperator(expression.exp, expression.func)).visit(self))
 
     def visit_MinOperator(self, expression):
         return u"SELECT MIN({0})".format(LambdaExpression.parse(expression.type, expression.func).body.sql)

@@ -133,6 +133,10 @@ class SqlLambdaTranslatorTest(TestCase):
         self.assertIsInstance(t.body.left, ast.Attribute, u"Should be Attribute instance")
         self.assertEquals(t.body.left.sql, u"x.first_name")
 
+        t = SqlLambdaTranslatorTest.translate(lambda s: s)
+        self.assertIsInstance(t.body.id, str, u"Should be Name instance")
+        self.assertEquals(t.body.id, u"s")
+
     def test_and(self):
         t = SqlLambdaTranslatorTest.translate(self.simple_and)
         self.assertIsInstance(t.body.op, ast.And, u"Should be And instance")

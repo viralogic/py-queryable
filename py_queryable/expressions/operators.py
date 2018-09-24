@@ -43,6 +43,13 @@ class WhereOperator(LambdaOperator):
     def visit(self, visitor):
         return visitor.visit_WhereOperator(self)
 
+class AliasOperator(UnaryExpression):
+    def __init__(self, alias, exp):
+        super(AliasOperator, self).__init__(exp)
+        self.alias = alias
+
+    def visit(self, visitor):
+        return visitor.visit_AliasOperator(self)
 
 class CountOperator(UnaryExpression):
     def __init__(self, exp):
@@ -68,7 +75,7 @@ class SkipOperator(UnaryExpression):
         return visitor.visit_SkipOperator(self)
 
 class MaxOperator(LambdaOperator):
-    def __init__(self, exp, func):
+    def __init__(self, exp, func=None):
         super(MaxOperator, self).__init__(exp, func)
 
     def visit(self, visitor):

@@ -22,6 +22,10 @@ class TestSqlExpressions(TestCase):
         sql = self.visitor.visit(se)
         self.assertEqual(sql, u"SELECT student.student_id, student.first_name, student.gpa, student.last_name FROM student")
 
+        se = operators.SelectOperator(expressions.TableExpression(Student), lambda s: s)
+        sql = self.visitor.visit(se)
+        self.assertEqual(sql, u"SELECT s.student_id, s.first_name, s.gpa, s.last_name FROM student s")
+
     def test_where_expression(self):
         we = operators.WhereOperator(expressions.TableExpression(Student), lambda x: x.gpa > 10)
         sql = self.visitor.visit(we)
@@ -166,25 +170,25 @@ class TestSqlExpressions(TestCase):
         )
 
     def test_max_expression(self):
-        te = unary.UnaryExpression(
-            Student,
-            unary.SelectExpression(Student),
-            self.table_expression)
-        me = unary.MaxExpression(Student, te, lambda s: s.gpa)
-        sql = self.visitor.visit(me)
+        te = operators.MaxOperator(expressions.TableExpression(Student), lambda s: s.gpa)
+        sql = self.visitor.visit(te)
         self.assertEqual(
             sql,
-            u"SELECT MAX(student.gpa) FROM student"
+            u"SELECT MAX(s.gpa) FROM (SELECT s.gpa FROM student s) s"
         )
 
-        te = unary.UnaryExpression(
-            Student,
-            unary.SelectExpression(Student, lambda s: s.gpa), self.table_expression)
-        me = unary.MaxExpression(Student, te)
-        sql = self.visitor.visit(me)
+        te = operators.MaxOperator(operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.gpa))
+        sql = self.visitor.visit(te)
         self.assertEqual(
             sql,
-            u"SELECT MAX(student.gpa) FROM student"
+            u"SELECT MAX(s.gpa) FROM (SELECT s.gpa FROM student s) s"
+        )
+
+        te = operators.MaxOperator(operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.gpa), lambda u: u.gpa)
+        sql = self.visitor.visit(te)
+        self.assertEqual(
+            sql,
+            u"SELECT MAX(u.gpa) FROM (SELECT s.gpa FROM student s) u"
         )
 
     def test_min_expression(self):
