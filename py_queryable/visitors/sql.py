@@ -7,6 +7,20 @@ from . import Visitor
 
 class SqlVisitor(Visitor):
     
+    def visit_lambda(self, expression, sql):
+        if expression.func is None:
+            if type(expression.exp) != operators.SelectOperator\
+             or (type(expression.exp) == operators.SelectOperator and expression.exp.func is None):
+                raise AttributeError("lambda function is required for SelectOperator")
+            expression.func = expression.exp.func
+        t = LambdaExpression.parse(expression.type, expression.func)
+        return u"SELECT {0}({1}) FROM {2}".format(
+            sql,
+            t.body.sql,
+            operators.AliasOperator(t.body.id, expression.exp).visit(self)\
+            if type(expression.exp) == operators.SelectOperator\
+            else operators.AliasOperator(t.body.id, operators.SelectOperator(expression.exp, expression.func)).visit(self))
+
     def visit_SelectOperator(self, expression):
         cols = Enumerable(expression.type.inspect_columns())
         if not cols.count() > 0:
@@ -77,33 +91,14 @@ class SqlVisitor(Visitor):
         return self.visit_OrderByDescendingExpression(expression)
 
     def visit_MaxOperator(self, expression):
-        if expression.func is None:
-            if type(expression.exp) != operators.SelectOperator or (type(expression.exp) == operators.SelectOperator and expression.exp.func is None):
-                raise AttributeError("lambda function is required for SelectOperator")
-            expression.func = expression.exp.func
-        t = LambdaExpression.parse(expression.type, expression.func)
-        return u"SELECT MAX({0}) FROM {1}".format(
-            t.body.sql,
-            operators.AliasOperator(t.body.id, expression.exp).visit(self) if type(expression.exp) == operators.SelectOperator else operators.AliasOperator(t.body.id, operators.SelectOperator(expression.exp, expression.func)).visit(self))
+        return self.visit_lambda(expression, u"MAX")
 
     def visit_MinOperator(self, expression):
-        return u"SELECT MIN({0})".format(LambdaExpression.parse(expression.type, expression.func).body.sql)
-
-    def visit_MinExpression(self, expression):
-        return self.visit_UnaryExpression(expression)
+        return self.visit_lambda(expression, u"MIN")
 
     def visit_SumOperator(self, expression):
-        return u"SELECT SUM({0})".format(LambdaExpression.parse(expression.type, expression.func).body.sql)
-
-    def visit_SumExpression(self, expression):
-        return self.visit_UnaryExpression(expression)
+        return self.visit_lambda(expression, u"SUM")
 
     def visit_AveOperator(self, expression):
-        return u"SELECT AVG({0})".format(LambdaExpression.parse(expression.type, expression.func).body.sql)
-
-    def visit_AvgExpression(self, expression):
-        return self.visit_UnaryExpression(expression)
-
-
-
+        return self.visit_lambda(expression, u"AVG")
 

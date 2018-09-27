@@ -170,6 +170,9 @@ class TestSqlExpressions(TestCase):
         )
 
     def test_max_expression(self):
+        te = operators.MaxOperator(expressions.TableExpression(Student))
+        self.assertRaises(AttributeError, self.visitor.visit, te)
+
         te = operators.MaxOperator(expressions.TableExpression(Student), lambda s: s.gpa)
         sql = self.visitor.visit(te)
         self.assertEqual(
@@ -192,61 +195,67 @@ class TestSqlExpressions(TestCase):
         )
 
     def test_min_expression(self):
-        te = unary.UnaryExpression(
-            Student,
-            unary.SelectExpression(Student), self.table_expression)
-        me = unary.MinExpression(Student, te, lambda s: s.gpa)
-        sql = self.visitor.visit(me)
+        te = operators.MinOperator(expressions.TableExpression(Student), lambda s: s.gpa)
+        sql = self.visitor.visit(te)
         self.assertEqual(
             sql,
-            u"SELECT MIN(student.gpa) FROM student"
+            u"SELECT MIN(s.gpa) FROM (SELECT s.gpa FROM student s) s"
         )
 
-        te = unary.UnaryExpression(
-            Student,
-            unary.SelectExpression(Student, lambda s: s.gpa), self.table_expression)
-        me = unary.MinExpression(Student, te)
-        sql = self.visitor.visit(me)
+        te = operators.MinOperator(operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.gpa))
+        sql = self.visitor.visit(te)
         self.assertEqual(
             sql,
-            u"SELECT MIN(student.gpa) FROM student"
+            u"SELECT MIN(s.gpa) FROM (SELECT s.gpa FROM student s) s"
+        )
+
+        te = operators.MinOperator(operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.gpa), lambda u: u.gpa)
+        sql = self.visitor.visit(te)
+        self.assertEqual(
+            sql,
+            u"SELECT MIN(u.gpa) FROM (SELECT s.gpa FROM student s) u"
         )
 
     def test_sum_expression(self):
-        te = unary.UnaryExpression(
-            Student,
-            unary.SelectExpression(Student), self.table_expression)
-        me = unary.SumExpression(Student, te, lambda s: s.gpa)
-        sql = self.visitor.visit(me)
+        te = operators.SumOperator(expressions.TableExpression(Student), lambda s: s.gpa)
+        sql = self.visitor.visit(te)
         self.assertEqual(
             sql,
-            u"SELECT SUM(student.gpa) FROM student"
+            u"SELECT SUM(s.gpa) FROM (SELECT s.gpa FROM student s) s"
         )
 
-        te = unary.UnaryExpression(
-            Student,
-            unary.SelectExpression(Student, lambda s: s.gpa), self.table_expression)
-        me = unary.SumExpression(Student, te)
-        sql = self.visitor.visit(me)
+        te = operators.SumOperator(operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.gpa))
+        sql = self.visitor.visit(te)
         self.assertEqual(
             sql,
-            u"SELECT SUM(student.gpa) FROM student"
+            u"SELECT SUM(s.gpa) FROM (SELECT s.gpa FROM student s) s"
         )
 
-    # def test_avg_expression(self):
-    #     te = operators.AveOperator(expressions.TableExpression(Student), lambda s: s.gpa)
-    #     sql = self.visitor.visit(te)
-    #     self.assertEqual(
-    #         sql,
-    #         u"SELECT AVG(student.gpa) FROM student"
-    #     )
-    
-    # te = unary.UnaryExpression(
-    #     Student,
-    #     unary.SelectExpression(Student, lambda s: s.gpa), self.table_expression)
-    # me = unary.AvgExpression(Student, te)
-    # sql = self.visitor.visit(me)
-    # self.assertEqual(
-    #     sql,
-    #     u"SELECT AVG(student.gpa) FROM student"
-    # )
+        te = operators.SumOperator(operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.gpa), lambda u: u.gpa)
+        sql = self.visitor.visit(te)
+        self.assertEqual(
+            sql,
+            u"SELECT SUM(u.gpa) FROM (SELECT s.gpa FROM student s) u"
+        )
+
+    def test_avg_expression(self):
+        te = operators.AveOperator(expressions.TableExpression(Student), lambda s: s.gpa)
+        sql = self.visitor.visit(te)
+        self.assertEqual(
+            sql,
+            u"SELECT AVG(s.gpa) FROM (SELECT s.gpa FROM student s) s"
+        )
+
+        te = operators.AveOperator(operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.gpa))
+        sql = self.visitor.visit(te)
+        self.assertEqual(
+            sql,
+            u"SELECT AVG(s.gpa) FROM (SELECT s.gpa FROM student s) s"
+        )
+
+        te = operators.AveOperator(operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.gpa), lambda u: u.gpa)
+        sql = self.visitor.visit(te)
+        self.assertEqual(
+            sql,
+            u"SELECT AVG(u.gpa) FROM (SELECT s.gpa FROM student s) u"
+        )

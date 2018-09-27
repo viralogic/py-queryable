@@ -82,21 +82,21 @@ class MaxOperator(LambdaOperator):
         return visitor.visit_MaxOperator(self)
 
 class MinOperator(LambdaOperator):
-    def __init__(self, exp, func):
+    def __init__(self, exp, func=None):
         super(MinOperator, self).__init__(exp, func)
 
     def visit(self, visitor):
         return visitor.visit_MinOperator(self)
 
 class SumOperator(LambdaOperator):
-    def __init__(self, exp, func):
+    def __init__(self, exp, func=None):
         super(SumOperator, self).__init__(exp, func)
 
     def visit(self, visitor):
         return visitor.visit_SumOperator(self)
 
 class AveOperator(LambdaOperator):
-    def __init__(self, exp, func):
+    def __init__(self, exp, func=None):
         super(AveOperator, self).__init__(exp, func)
 
     def visit(self, visitor):
