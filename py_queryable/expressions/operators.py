@@ -116,6 +116,13 @@ class OrderByOperator(LambdaOperator):
     def visit(self, visitor):
         return visitor.visit_OrderByOperator(self)
 
+class OrderByDescendingOperator(LambdaOperator):
+    def __init__(self, exp, func=None):
+        super(OrderByDescendingOperator, self).__init__(exp, func)
+
+    def visit(self, visitor):
+        return visitor.visit_OrderByDescendingOperator(self)
+
 class ThenByOperator(LambdaOperator):
     def __init__(self, exp, func):
         super(ThenByOperator, self).__init__(exp, func)

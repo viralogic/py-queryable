@@ -7,14 +7,18 @@ from . import Visitor
 
 class SqlVisitor(Visitor):
     
-    def visit_lambda(self, expression, sql):
+    def _set_lambda(self, expression):
         if expression.func is None:
             if type(expression.exp) != operators.SelectOperator\
              or (type(expression.exp) == operators.SelectOperator and expression.exp.func is None):
                 raise AttributeError("lambda function is required for SelectOperator")
             expression.func = expression.exp.func
+        return expression
+
+    def _visit_lambda(self, expression, sql):
+        expression = self._set_lambda(expression)
         t = LambdaExpression.parse(expression.type, expression.func)
-        return u"SELECT {0}({1}) FROM {2}".format(
+        return u"SELECT {0}({1}) {2}".format(
             sql,
             t.body.sql,
             operators.AliasOperator(t.body.id, expression.exp).visit(self)\
@@ -44,7 +48,7 @@ class SqlVisitor(Visitor):
             )
 
     def visit_AliasOperator(self, expression):
-        return "({0}) {1}".format(expression.exp.visit(self), expression.alias)
+        return "FROM ({0}) {1}".format(expression.exp.visit(self), expression.alias)
 
     def visit_WhereOperator(self, expression):
         return u"{0} WHERE {1}".format(expression.exp.visit(self), LambdaExpression.parse(expression.type, expression.func).body.sql)
@@ -74,11 +78,18 @@ class SqlVisitor(Visitor):
         t = LambdaExpression.parse(expression.type, expression.func)
         return u"ORDER BY {0}".format(t.body.sql)
 
+    def visit_OrderByDescendingOperator(self, expression):
+        expression = self._set_lambda(expression)
+        t = LambdaExpression.parse(expression.type, expression.func)
+        return u"SELECT {0} {1} ORDER BY {2} DESC".format(
+            t.body.sql,
+            u"{0} {1}".format(expression.exp.visit(self), t.body.id) if type(expression.exp) != operators.SelectOperator \
+             else operators.AliasOperator(t.body.id, expression.exp).visit(self),
+            t.body.sql
+            )
+
     def visit_OrderByExpression(self, expression):
         return u"{0} {1} ASC".format(expression.exp.visit(self), expression.op.visit(self))
-
-    def visit_OrderByDescendingExpression(self, expression):
-        return u"{0} {1} DESC".format(expression.exp.visit(self), expression.op.visit(self))
 
     def visit_ThenByOperator(self, expression):
         t = LambdaExpression.parse(expression.type, expression.func)
@@ -91,14 +102,14 @@ class SqlVisitor(Visitor):
         return self.visit_OrderByDescendingExpression(expression)
 
     def visit_MaxOperator(self, expression):
-        return self.visit_lambda(expression, u"MAX")
+        return self._visit_lambda(expression, u"MAX")
 
     def visit_MinOperator(self, expression):
-        return self.visit_lambda(expression, u"MIN")
+        return self._visit_lambda(expression, u"MIN")
 
     def visit_SumOperator(self, expression):
-        return self.visit_lambda(expression, u"SUM")
+        return self._visit_lambda(expression, u"SUM")
 
     def visit_AveOperator(self, expression):
-        return self.visit_lambda(expression, u"AVG")
+        return self._visit_lambda(expression, u"AVG")
 
