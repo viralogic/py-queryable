@@ -17,6 +17,14 @@ class TestSqlExpressions(TestCase):
         sql = self.visitor.visit(se)
         self.assertEqual(sql, u"SELECT x.first_name FROM student x")
 
+        se = operators.SelectOperator(expressions.TableExpression(Student), lambda x: (x.first_name, x.last_name))
+        sql = self.visitor.visit(se)
+        self.assertEqual(sql, u"SELECT x.first_name, x.last_name FROM student x")
+
+        se = operators.SelectOperator(expressions.TableExpression(Student), lambda x: { 'first': x.first_name, 'last': x.last_name })
+        sql = self.visitor.visit(se)
+        self.assertEqual(sql, u"SELECT x.first_name AS 'first', x.last_name AS 'last' FROM student x")
+
     def test_select_all(self):
         se = operators.SelectOperator(expressions.TableExpression(Student))
         sql = self.visitor.visit(se)
@@ -100,39 +108,67 @@ class TestSqlExpressions(TestCase):
         sql = self.visitor.visit(qe)
         self.assertEqual(sql, u'SELECT student.student_id, student.first_name, student.gpa, student.last_name FROM student LIMIT 1 OFFSET 1')
 
-    def test_order_by_operator(self):
-        obo = operators.OrderByOperator(Student, lambda x: x.first_name)
-        sql = self.visitor.visit(obo)
-        self.assertEqual(sql, u"ORDER BY student.first_name")
-
     def test_order_by_expression(self):
-        te = unary.UnaryExpression(
-            Student, 
-            unary.SelectExpression(Student, lambda s: s.first_name), self.table_expression)
-        obe = unary.OrderByExpression(Student, lambda s: s.first_name, te)
-        sql = self.visitor.visit(obe)
-        self.assertEqual(sql, u"SELECT student.first_name AS first_name FROM student ORDER BY student.first_name ASC")
+        te = operators.OrderByOperator(
+            operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.first_name),
+            lambda s: s.first_name)
+        sql = self.visitor.visit(te)
+        self.assertEqual(sql, u"SELECT s.first_name FROM student s ORDER BY s.first_name ASC")
+
+        te = operators.OrderByOperator(
+            operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.first_name))
+        sql = self.visitor.visit(te)
+        self.assertEqual(sql, u"SELECT s.first_name FROM student s ORDER BY s.first_name ASC")
+
+        te = operators.OrderByOperator(
+            expressions.TableExpression(Student),
+            lambda s: s.first_name
+        )
+        sql = self.visitor.visit(te)
+        self.assertEqual(
+            sql, 
+            u"SELECT student.student_id, student.first_name, student.gpa, student.last_name FROM student ORDER BY s.first_name ASC"
+        )
+
 
     def test_then_by_expression(self):
-        te = unary.UnaryExpression(
-            Student,
-            unary.SelectExpression(Student, lambda s: (s.first_name, s.gpa)), self.table_expression)
-        tbe = unary.ThenByExpression(
-            Student, 
-            lambda s: s.gpa,
-            unary.OrderByExpression(Student, lambda s: s.first_name, te))
-        sql = self.visitor.visit(tbe)
+        te = operators.ThenByOperator(
+            operators.OrderByOperator(
+                operators.SelectOperator(
+                    expressions.TableExpression(Student),
+                    lambda s: (s.first_name, s.gpa)
+                ), lambda s: s.first_name
+            ), lambda s: s.gpa
+        )
+        sql = self.visitor.visit(te)
         self.assertEqual(
             sql,
-            u"SELECT student.first_name AS first_name, student.gpa AS gpa FROM student ORDER BY student.first_name ASC , student.gpa ASC")
+            u"SELECT s.first_name, s.gpa FROM student s ORDER BY s.first_name ASC, s.gpa ASC")
 
-        tbde = sort.ThenByDescendingExpression(
-            Student,
-            lambda s: s.gpa, unary.OrderByExpression(Student, lambda s: s.first_name, te))
+        te = operators.ThenByOperator(
+            operators.OrderByOperator(
+                operators.SelectOperator(
+                    expressions.TableExpression(Student),
+                    lambda s: (s.first_name, s.gpa)
+                ), lambda s: s.first_name
+            ), lambda u: u.gpa
+        )
+        sql = self.visitor.visit(te)
+        self.assertEqual(
+            sql,
+            u"SELECT s.first_name, s.gpa FROM student s ORDER BY s.first_name ASC, s.gpa ASC"
+        )
+
+        tbde = operators.ThenByDescendingOperator(
+            operators.OrderByOperator(
+                operators.SelectOperator(expressions.TableExpression(Student)),
+                lambda s: s.first_name
+            ), lambda s: s.gpa
+        )
         sql = self.visitor.visit(tbde)
         self.assertEqual(
             sql,
-            u"SELECT student.first_name AS first_name, student.gpa AS gpa FROM student ORDER BY student.first_name ASC , student.gpa DESC")
+            u"SELECT student.student_id, student.first_name, student.gpa, student.last_name FROM student ORDER BY s.first_name ASC, s.gpa DESC")
 
     def test_order_by_descending_expression(self):
         te = operators.OrderByDescendingOperator(
@@ -140,19 +176,19 @@ class TestSqlExpressions(TestCase):
             lambda s: s.first_name
         )
         sql = self.visitor.visit(te)
-        self.assertEqual(sql, u"SELECT s.first_name FROM (SELECT s.first_name FROM student s) s ORDER BY s.first_name DESC")
+        self.assertEqual(sql, u"SELECT s.first_name FROM student s ORDER BY s.first_name DESC")
 
         te = operators.OrderByDescendingOperator(
             operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.first_name))
         sql = self.visitor.visit(te)
-        self.assertEqual(sql, u"SELECT s.first_name FROM (SELECT s.first_name FROM student s) s ORDER BY s.first_name DESC")
+        self.assertEqual(sql, u"SELECT s.first_name FROM student s ORDER BY s.first_name DESC")
 
         te = operators.OrderByDescendingOperator(
             expressions.TableExpression(Student),
             lambda s: s.first_name
         )
         sql = self.visitor.visit(te)
-        self.assertEqual(sql, u"SELECT s.first_name FROM student s ORDER BY s.first_name DESC")
+        self.assertEqual(sql, u"SELECT student.student_id, student.first_name, student.gpa, student.last_name FROM student ORDER BY s.first_name DESC")
 
     def test_then_by_descending_expression(self):
         te = unary.UnaryExpression(

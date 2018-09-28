@@ -105,13 +105,18 @@ class SqlLambdaTranslator(ast.NodeVisitor):
     def visit_List(self, node):
         self.generic_visit(node)
         node.sql = u", ".join(Enumerable(node.elts).select(lambda x: x.sql))
+        node.id = node.elts[0].value.id
 
     def visit_Tuple(self, node):
         self.visit_List(node)
 
     def visit_Dict(self, node):
         self.generic_visit(node)
-        node.sql = u", ".join(Enumerable(node.values).select(lambda x: x.sql))
+        result = []
+        for i in range(len(node.values)):
+            result.append(u"{0} AS '{1}'".format(node.values[i].sql, node.keys[i].s))
+        node.sql = u", ".join(result)
+        node.id = node.values[0].id
 
 
 
