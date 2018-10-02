@@ -191,30 +191,33 @@ class TestSqlExpressions(TestCase):
         self.assertEqual(sql, u"SELECT student.student_id, student.first_name, student.gpa, student.last_name FROM student ORDER BY s.first_name DESC")
 
     def test_then_by_descending_expression(self):
-        te = unary.UnaryExpression(
-            Student, 
-            unary.SelectExpression(Student, lambda s: (s.first_name, s.gpa)), self.table_expression)
-        tbde = sort.ThenByDescendingExpression(
-            Student,
-            lambda s: s.gpa,
-            sort.OrderByDescendingExpression(Student, lambda s: s.first_name, te)
+        te = operators.ThenByDescendingOperator(
+            operators.OrderByDescendingOperator(
+                operators.SelectOperator(
+                    expressions.TableExpression(Student),
+                    lambda s: (s.first_name, s.gpa)
+                ),
+                lambda s: s.first_name
+            ),
+            lambda x: s.gpa
         )
-        sql = self.visitor.visit(tbde)
+        sql = self.visitor.visit(te)
         self.assertEqual(
             sql,
-            u"SELECT student.first_name AS first_name, student.gpa AS gpa FROM student ORDER BY student.first_name DESC , student.gpa DESC"
+            u"SELECT s.first_name, s.gpa FROM student s ORDER BY s.first_name DESC, s.gpa DESC"
         )
 
-        tbde = unary.ThenByExpression(
-            Student,
-            lambda s: s.gpa,
-            sort.OrderByDescendingExpression(Student, lambda s: s.first_name, te)
+        te = operators.ThenByOperator(
+            operators.OrderByDescendingOperator(
+                expressions.TableExpression(Student),
+                lambda s: s.first_name
+            ),
+            lambda s: s.gpa
         )
-
-        sql = self.visitor.visit(tbde)
+        sql = self.visitor.visit(te)
         self.assertEqual(
             sql,
-            u"SELECT student.first_name AS first_name, student.gpa AS gpa FROM student ORDER BY student.first_name DESC , student.gpa ASC"
+            u"SELECT student.student_id, student.first_name, student.gpa, student.last_name FROM student ORDER BY student.first_name DESC, student.gpa ASC"
         )
 
     def test_max_expression(self):

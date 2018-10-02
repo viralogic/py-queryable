@@ -87,7 +87,7 @@ class SqlVisitor(Visitor):
             expression.exp = operators.SelectOperator(expression.exp)
         return u"{0} ORDER BY {1} ASC".format(
             expression.exp.visit(self),
-            t.body.sql
+            t.body.sql if select is not None else t.body.sql.replace(u"{0}.".format(t.body.id), u"{0}.".format(expression.exp.type.__table_name__))
         )
 
     def visit_OrderByDescendingOperator(self, expression):
