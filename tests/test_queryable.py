@@ -1,7 +1,8 @@
 import os
 from unittest import TestCase
 from . import _sqlite_db_path
-from py_queryable.expressions import *
+from py_queryable import expressions
+from py_queryable.expressions import operators
 from .models import Student
 from py_queryable.db_providers import SqliteDbConnection
 from py_linq.exceptions import NoElementsError, MoreThanOneMatchingElement, NoMatchingElement
@@ -33,21 +34,21 @@ class QueryableTest(TestCase):
         self.conn.save_changes()
 
     def test_sql(self):
-        sql = self.conn.query(UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))).sql
+        sql = self.conn.query(operators.SelectOperator(expressions.TableExpression(Student))).sql
         self.assertTrue(sql.startswith(u"SELECT"))
         self.assertTrue(sql.endswith(u"FROM student"))
-        self.assertTrue(u"student.first_name AS first_name" in sql)
-        self.assertTrue(u"student.student_id AS student_id" in sql)
-        self.assertTrue(u"student.last_name AS last_name" in sql)
-        self.assertTrue(u"student.gpa AS gpa")
+        self.assertTrue(u"student.first_name" in sql)
+        self.assertTrue(u"student.student_id" in sql)
+        self.assertTrue(u"student.last_name" in sql)
+        self.assertTrue(u"student.gpa")
 
     def test_count(self):
-        count = self.conn.query(UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))).count()
+        count = self.conn.query(operators.SelectOperator(expressions.TableExpression(Student))).count()
         self.assertEquals(count, 2, u"Number of students inserted should equal 2 - get {0}".format(count))
 
     def test_take(self):
         result = self.conn.query(
-            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
+            operators.SelectOperator(expressions.TableExpression(Student))
         ).take(1).to_list()
         self.assertEquals(len(result), 1, u"Appears that take expression is not working")
         self.assertEquals(
@@ -65,7 +66,7 @@ class QueryableTest(TestCase):
         )
 
         result = self.conn.query(
-            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
+            operators.SelectOperator(expressions.TableExpression(Student))
         ).skip(1).take(1).to_list()
 
         self.assertEquals(
@@ -83,12 +84,7 @@ class QueryableTest(TestCase):
         )
 
     def test_skip(self):
-        result = self.conn.query(UnaryExpression(
-            Student,
-            SelectExpression(Student),
-            TableExpression(Student)
-        )).skip(1).to_list()
-
+        result = self.conn.query(operators.SelectOperator(expressions.TableExpression(Student))).skip(1).to_list()
         self.assertEquals(
             len(result),
             1,
@@ -109,18 +105,32 @@ class QueryableTest(TestCase):
             u"Mudryk", u"Mudryk should be the last name - get {0}".format(result[0].last_name)
         )
 
-        result = self.conn.query(
-            UnaryExpression(Student, SelectExpression(Student, lambda x: x.first_name), TableExpression(Student))
-        ).take(1).skip(1).to_list()
+        result = self.conn.query(operators.SelectOperator(expressions.TableExpression(Student), lambda x: x.first_name)) \
+            .take(1).skip(1).to_list()
+
         self.assertEquals(
             len(result),
             1,
-            u"Appears that take expression is not working"
+            u"Appears that skip expression is not working"
         )
         self.assertEquals(
             result[0],
             u"Abraham",
             u"Abraham should be the first name - get {0}".format(result[0])
+        )
+
+        result2 = self.conn.query(operators.SelectOperator(expressions.TableExpression(Student), lambda x: x.first_name)) \
+            .skip(1).take(1).to_list()
+
+        self.assertEquals(
+            len(result2),
+            1,
+            u"Appears that skip expression is not working"
+        )
+        self.assertEquals(
+            result2[0],
+            u"Abraham",
+            u"Abraham should be the first name - get {0}".format(result2[0])
         )
 
     def test_first(self):
@@ -398,8 +408,11 @@ class QueryableTest(TestCase):
         self.assertTrue(students.any())
 
     def test_all(self):
+        # students = self.conn.query(
+        #     UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
+        # )
         students = self.conn.query(
-            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
+            operators.SelectOperator(expressions.TableExpression(Student))
         )
         self.assertFalse(students.all(lambda s: s.gpa > 50))
         self.assertTrue(students.all(lambda s: "k" in s.last_name))

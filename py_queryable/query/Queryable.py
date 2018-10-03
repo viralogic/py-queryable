@@ -1,7 +1,5 @@
 from ..expressions import LambdaExpression
 from ..expressions import operators
-from ..expressions import unary
-from ..expressions import sort
 from ..entity.proxy import DynamicModelProxy
 from py_linq import Enumerable
 from py_linq.exceptions import NoElementsError, NoMatchingElement, MoreThanOneMatchingElement
@@ -15,12 +13,8 @@ class Queryable(object):
         self.__provider = query_provider
 
     def __iter__(self):
-        # Get type determined by select expression
-        select = self.expression.find(SelectExpression)
-        if select is None:
-            raise Exception(u"Queryable expression does not contain a SelectExpression")
         num_cols = len(self.type.inspect_columns())
-        result_type = self.type if select.func is None else LambdaExpression.parse(self.type, select.func).body.type
+        result_type = self.expression.type
 
         cursor = self.provider.db_provider.connection.cursor()
         cursor.execute(self.sql)
@@ -70,20 +64,14 @@ class Queryable(object):
         return Queryable(UnaryExpression(self.type, SelectExpression(self.type, func), self.expression), self.provider)
 
     def count(self):
-        query = Queryable(unary.CountExpression(self.type, self.expression), self.provider)
+        query = Queryable(operators.CountOperator(self.expression), self.provider)
         return self.provider.db_provider.execute_scalar(query.sql)
 
     def take(self, limit):
-        if isinstance(self.__exp, unary.SkipExpression):
-            self.expression.exp.op.limit = limit
-            return self
-        else:
-            return Queryable(unary.TakeExpression(self.type, self.expression, limit), self.provider)
+        return Queryable(operators.TakeOperator(self.expression, limit), self.provider)
 
     def skip(self, offset):
-        if not isinstance(self.expression, unary.TakeExpression):
-            self.__exp = unary.TakeExpression(self.type, self.expression, -1)
-        return Queryable(unary.SkipExpression(self.type, self.expression, offset), self.provider)
+        return Queryable(operators.SkipOperator(self.expression, offset), self.provider)
 
     def max(self, func=None):
         query = Queryable(unary.MaxExpression(self.type, self.expression, func), self.provider)

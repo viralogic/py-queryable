@@ -7,20 +7,10 @@ class LambdaOperator(Expression):
         super(LambdaOperator, self).__init__()
         self.exp = exp
         self.func = func
-        self.class_type = None
 
     @property
     def children(self):
         return [self.exp]
-
-    @property
-    def type(self):
-        if self.class_type is None:
-            t = self.find(TableExpression)
-            if t is None:
-                raise Exception("Cannot find TableExpression in {0}".format(self.exp.__repr__()))
-            self.class_type = t.type
-        return self.class_type
 
     def __repr__(self):
         return u"{0}(T={1}, func={2})".format(

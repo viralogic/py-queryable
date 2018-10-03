@@ -259,7 +259,7 @@ class SqlLambdaTranslatorTest(TestCase):
     def test_dict_select(self):
         t = SqlLambdaTranslatorTest.translate(self.dict_select)
         self.assertIsInstance(t.body, ast.Dict, u"Should be a Dict instance")
-        correct = u"x.first_name, x.last_name, x.gpa"
+        correct = u"x.first_name AS 'FirstName', x.last_name AS 'LastName', x.gpa AS 'GPA'"
         self.assertEqual(
             t.body.sql,
             correct,

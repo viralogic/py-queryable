@@ -20,9 +20,19 @@ class LambdaExpression(object):
 class Expression(object):
     def __init__(self):
         self.visited = False
+        self.class_type = None
 
     def __eq__(self, other):
         return self.__repr__() == other.__repr__()
+
+    @property
+    def type(self):   
+        if self.class_type is None:
+            t = self.find(TableExpression)
+            if t is None:
+                raise Exception("Cannot find TableExpression in {0}".format(self.exp.__repr__()))
+            self.class_type = t.type
+        return self.class_type
 
     @abc.abstractmethod
     def visit(self, visitor):
@@ -50,17 +60,11 @@ class Expression(object):
         return None
 
 class TableExpression(Expression):
-    __class_type__ = None
-
     def __init__(self, T):
         super(TableExpression, self).__init__()
         if not hasattr(T, u"__table_name__"):
             raise AttributeError(u"{0} does not appear to be derived from Model".format(T.__class__.__name__))
-        self.__class_type__ = T
-
-    @property
-    def type(self):
-        return self.__class_type__
+        self.class_type = T
 
     def visit(self, visitor):
         return visitor.visit_TableExpression(self)

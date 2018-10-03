@@ -68,6 +68,11 @@ class SqlVisitor(Visitor):
                 expression.exp.exp = operators.SelectOperator(expression.exp.exp)
             else:
                 expression.exp = operators.SelectOperator(expression.exp)
+        if type(expression.exp) == operators.SkipOperator:
+            return operators.SkipOperator(
+                operators.TakeOperator(expression.exp.exp, expression.limit),
+                expression.exp.skip
+                ).visit(self)
         return u"{0} LIMIT {1}".format(expression.exp.visit(self), expression.limit)
 
     def visit_SkipOperator(self, expression):
@@ -100,7 +105,12 @@ class SqlVisitor(Visitor):
         t = LambdaExpression.parse(expression.type, expression.func)
         expression.exp = self._set_lambda(expression.exp)
         te = LambdaExpression.parse(expression.exp.type, expression.exp.func)
-        return u"{0}, {1} ASC".format(expression.exp.visit(self), t.body.sql.replace(t.body.id, te.body.id))
+        select = expression.find(operators.SelectOperator)
+        return u"{0}, {1} ASC".format(
+            expression.exp.visit(self),
+            t.body.sql.replace(t.body.id, te.body.id) if select is not None \
+             else t.body.sql.replace(u"{0}.".format(t.body.id), u"{0}.".format(expression.exp.type.__table_name__))
+        )
 
     def visit_ThenByDescendingOperator(self, expression):
         sql = self.visit_ThenByOperator(expression)[0:-4]
