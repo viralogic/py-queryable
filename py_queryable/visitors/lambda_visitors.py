@@ -63,6 +63,7 @@ class SqlLambdaTranslator(ast.NodeVisitor):
 
     def visit_Compare(self, node):
         self.generic_visit(node)
+        node.id = node.left.id
         if hasattr(node.comparators[0], u"sql"):
             comparator = node.comparators[0].sql
         elif isinstance(node.comparators[0], unicode):
@@ -80,6 +81,10 @@ class SqlLambdaTranslator(ast.NodeVisitor):
     def visit_BoolOp(self, node):
         self.generic_visit(node)
         vals = Enumerable(node.values)
+        compare = vals.where(lambda c: type(c) == ast.Compare).first_or_default()
+        if compare is None:
+            raise AttributeError(u"No ast.Compare node can be found in ast.BoolOp={0}".format(node.__repr__()))
+        node.id = compare.left.id
         node.sql = u" {0} ".format(node.op.sql).join(
             vals.select(lambda v: u"({0})".format(v.sql) if isinstance(v, ast.BoolOp) else v.sql)
         )

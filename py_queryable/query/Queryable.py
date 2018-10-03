@@ -120,8 +120,7 @@ class Queryable(object):
         )
 
     def where(self, func):
-        return Queryable(
-            unary.WhereExpression(self.type, func, self.expression), self.provider)
+        return Queryable(operators.WhereOperator(self.expression, func), self.provider)
 
     def single(self, func=None):
         result = self.where(func).to_list() if func is not None else self.to_list()

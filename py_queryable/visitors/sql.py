@@ -50,7 +50,14 @@ class SqlVisitor(Visitor):
         return "FROM ({0}) {1}".format(expression.exp.visit(self), expression.alias)
 
     def visit_WhereOperator(self, expression):
-        return u"{0} WHERE {1}".format(expression.exp.visit(self), LambdaExpression.parse(expression.type, expression.func).body.sql)
+        select = expression.find(operators.SelectOperator)
+        if select is None:
+            expression.exp = operators.SelectOperator(expression.exp)
+        t = LambdaExpression.parse(expression.type, expression.func)
+        return u"{0} WHERE {1}".format(
+            expression.exp.visit(self),
+            t.body.sql if select is not None else t.body.sql.replace(u"{0}.".format(t.body.id), u"{0}.".format(expression.exp.type.__table_name__))
+        )
 
     def visit_TableExpression(self, expression):
         return u"FROM {0}".format(expression.type.table_name())

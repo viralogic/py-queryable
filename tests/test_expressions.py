@@ -35,7 +35,7 @@ class TestSqlExpressions(TestCase):
     def test_where_expression(self):
         we = operators.WhereOperator(expressions.TableExpression(Student), lambda x: x.gpa > 10)
         sql = self.visitor.visit(we)
-        self.assertTrue(sql.endswith(u"x.gpa > 10"))
+        self.assertTrue(sql.endswith(u"student.gpa > 10"))
 
     def test_where_expression_complex(self):
         we = operators.WhereOperator(
@@ -44,7 +44,7 @@ class TestSqlExpressions(TestCase):
             )
         sql = self.visitor.visit(we)
         self.assertTrue(
-            sql.endswith(u"WHERE (x.gpa > 10 AND x.first_name = 'Bruce') OR x.first_name = 'Dustin'")
+            sql.endswith(u"WHERE (student.gpa > 10 AND student.first_name = 'Bruce') OR student.first_name = 'Dustin'")
         )
 
         we = operators.WhereOperator(

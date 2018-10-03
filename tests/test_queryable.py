@@ -185,9 +185,10 @@ class QueryableTest(TestCase):
         self.assertIsNone(result, u"First or Default query should be none. The Student table is empty")
 
     def test_where(self):
-        students = self.conn.query(
-            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
-        ).where(lambda s: s.student_id == 1)
+        # students = self.conn.query(
+        #     UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
+        # ).where(lambda s: s.student_id == 1)
+        students = self.conn.query(operators.SelectOperator(expressions.TableExpression(Student))).where(lambda s: s.student_id == 1)
         num_students = students.count()
         self.assertEquals(num_students, 1, u"Should only be one student row returned in query")
 
