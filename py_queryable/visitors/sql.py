@@ -1,98 +1,135 @@
 import ast
 from py_linq import Enumerable
-from ..visitors import Visitor
-from ..expressions import LambdaExpression, SelectExpression
+from ..expressions import LambdaExpression, TableExpression
+from ..expressions import operators
+from . import Visitor
 
 
 class SqlVisitor(Visitor):
+    
+    def _set_lambda(self, expression):
+        if expression.func is None:
+            if type(expression.exp) != operators.SelectOperator\
+             or (type(expression.exp) == operators.SelectOperator and expression.exp.func is None):
+                raise AttributeError("lambda function is required for SelectOperator")
+            expression.func = expression.exp.func
+        return expression
 
-    def visit_UnaryExpression(self, expression):
-        return u"{0} {1}".format(expression.op.visit(self), expression.exp.visit(self))
+    def _visit_lambda(self, expression, sql):
+        expression = self._set_lambda(expression)
+        t = LambdaExpression.parse(expression.type, expression.func)
+        return u"SELECT {0}({1}) {2}".format(
+            sql,
+            t.body.sql,
+            operators.AliasOperator(t.body.id, expression.exp).visit(self)\
+            if type(expression.exp) == operators.SelectOperator\
+            else operators.AliasOperator(t.body.id, operators.SelectOperator(expression.exp, expression.func)).visit(self))
 
-    def visit_SelectExpression(self, expression):
+    def visit_SelectOperator(self, expression):
+        cols = Enumerable(expression.type.inspect_columns())
+        if not cols.count() > 0:
+                raise TypeError(u"{0} has no defined columns in model".format(expression.type.__class__.__name__))
         if expression.func is not None:
             t = LambdaExpression.parse(expression.type, expression.func)
-            return u"SELECT {0}".format(t.body.sql if not isinstance(t.body, ast.Attribute) else t.body.select_sql)
+            if not hasattr(t.body, "sql"):
+                sql = cols.select(
+                    lambda c: u"{0}.{1}".format(t.body.id, c[1].column_name)
+                )
+                t.body.sql = u", ".join(sql)
+            return u"SELECT {0} {1} {2}".format(t.body.sql, expression.exp.visit(self), t.body.id)
         else:
-            cols = Enumerable(expression.type.inspect_columns())
-            if not cols.count() > 0:
-                raise TypeError(u"{0} has no defined columns in model".format(expression.type.__class__.__name__))
             sql = cols.select(
-                lambda c: u"{0}.{1} AS {2}".format(expression.type.table_name(), c[1].column_name, c[0])
+                lambda c: u"{0}.{1}".format(expression.type.table_name(), c[1].column_name)
             )
-            return u"SELECT {0}".format(u", ".join(sql))
+            return u"SELECT {0} {1}".format(
+                u", ".join(sql),
+                expression.exp.visit(self)
+            )
+
+    def visit_AliasOperator(self, expression):
+        return "FROM ({0}) {1}".format(expression.exp.visit(self), expression.alias)
+
+    def visit_WhereOperator(self, expression):
+        select = expression.find(operators.SelectOperator)
+        if select is None:
+            expression.exp = operators.SelectOperator(expression.exp)
+        t = LambdaExpression.parse(expression.type, expression.func)
+        return u"SELECT * {0} WHERE {1}".format(
+            operators.AliasOperator(t.body.id, expression.exp).visit(self),
+            t.body.sql
+        )
 
     def visit_TableExpression(self, expression):
         return u"FROM {0}".format(expression.type.table_name())
 
     def visit_CountOperator(self, expression):
-        return u"SELECT COUNT(*)"
+        result = expression.exp.visit(self)
+        if type(expression.exp) != TableExpression:
+            result = u"FROM ({0})".format(result)
+        return u"SELECT COUNT(*) {0}".format(result)
 
     def visit_TakeOperator(self, expression):
-        return u"LIMIT {0}".format(expression.limit)
-
-    def visit_TakeExpression(self, expression):
-        return u"{0} {1}".format(expression.exp.visit(self), expression.op.visit(self))
+        select = expression.find(operators.SelectOperator)
+        if select is None:
+            if type(expression.exp) == operators.SkipOperator:
+                expression.exp.exp = operators.SelectOperator(expression.exp.exp)
+            else:
+                expression.exp = operators.SelectOperator(expression.exp)
+        if type(expression.exp) == operators.SkipOperator:
+            return operators.SkipOperator(
+                operators.TakeOperator(expression.exp.exp, expression.limit),
+                expression.exp.skip
+                ).visit(self)
+        return u"{0} LIMIT {1}".format(expression.exp.visit(self), expression.limit)
 
     def visit_SkipOperator(self, expression):
-        return u"OFFSET {0}".format(expression.skip)
-
-    def visit_SkipExpression(self, expression):
-        return u"{0} {1}".format(expression.exp.visit(self), expression.op.visit(self))
-
-    def visit_CountExpression(self, expression):
-        return u"{0} FROM ({1})".format(expression.op.visit(self), expression.exp.visit(self))
-
-    def visit_WhereOperator(self, expression):
-        return u"WHERE {0}".format(LambdaExpression.parse(expression.type, expression.func).body.sql)
-
-    def visit_WhereExpression(self, expression):
-        return u"{0} {1}".format(expression.exp.visit(self), expression.op.visit(self))
+        select = expression.find(operators.SelectOperator)
+        if select is None:
+            if type(expression.exp) == operators.TakeOperator:
+                expression.exp.exp = operators.SelectOperator(expression.exp.exp)
+            else:
+                expression.exp = operators.SelectOperator(expression.exp)
+        if type(expression.exp) != operators.TakeOperator:
+            expression.exp = operators.TakeOperator(expression.exp, -1)
+        return u"{0} OFFSET {1}".format(expression.exp.visit(self), expression.skip)
 
     def visit_OrderByOperator(self, expression):
         t = LambdaExpression.parse(expression.type, expression.func)
-        return u"ORDER BY {0}".format(t.body.sql)
+        select = expression.find(operators.SelectOperator)
+        if select is None:
+            expression.exp = operators.SelectOperator(expression.exp)
+        return u"SELECT * {0} ORDER BY {1} ASC".format(
+            operators.AliasOperator(t.body.id, expression.exp).visit(self),
+            t.body.sql
+        )
 
-    def visit_OrderByExpression(self, expression):
-        return u"{0} {1} ASC".format(expression.exp.visit(self), expression.op.visit(self))
-
-    def visit_OrderByDescendingExpression(self, expression):
-        return u"{0} {1} DESC".format(expression.exp.visit(self), expression.op.visit(self))
+    def visit_OrderByDescendingOperator(self, expression):
+        sql = self.visit_OrderByOperator(expression)[0:-4]
+        return u"{0} DESC".format(sql)
 
     def visit_ThenByOperator(self, expression):
+        if type(expression.exp) != operators.OrderByOperator and type(expression.exp) != operators.OrderByDescendingOperator:
+            raise AttributeError("ThenBy needs to follow OrderBy or OrderByDescending")
         t = LambdaExpression.parse(expression.type, expression.func)
-        return u", {0}".format(t.body.sql)
+        te = LambdaExpression.parse(expression.exp.type, expression.exp.func)
+        return u"{0}, {1} ASC".format(
+            expression.exp.visit(self),
+            t.body.sql.replace(t.body.id, te.body.id)
+        )
 
-    def visit_ThenByExpression(self, expression):
-        return self.visit_OrderByExpression(expression)
-
-    def visit_ThenByDescendingExpression(self, expression):
-        return self.visit_OrderByDescendingExpression(expression)
+    def visit_ThenByDescendingOperator(self, expression):
+        sql = self.visit_ThenByOperator(expression)[0:-4]
+        return u"{0} DESC".format(sql)
 
     def visit_MaxOperator(self, expression):
-        return u"SELECT MAX({0})".format(LambdaExpression.parse(expression.type, expression.func).body.sql)
-
-    def visit_MaxExpression(self, expression):
-        return self.visit_UnaryExpression(expression)
+        return self._visit_lambda(expression, u"MAX")
 
     def visit_MinOperator(self, expression):
-        return u"SELECT MIN({0})".format(LambdaExpression.parse(expression.type, expression.func).body.sql)
-
-    def visit_MinExpression(self, expression):
-        return self.visit_UnaryExpression(expression)
+        return self._visit_lambda(expression, u"MIN")
 
     def visit_SumOperator(self, expression):
-        return u"SELECT SUM({0})".format(LambdaExpression.parse(expression.type, expression.func).body.sql)
-
-    def visit_SumExpression(self, expression):
-        return self.visit_UnaryExpression(expression)
+        return self._visit_lambda(expression, u"SUM")
 
     def visit_AveOperator(self, expression):
-        return u"SELECT AVG({0})".format(LambdaExpression.parse(expression.type, expression.func).body.sql)
-
-    def visit_AvgExpression(self, expression):
-        return self.visit_UnaryExpression(expression)
-
-
-
+        return self._visit_lambda(expression, u"AVG")
 

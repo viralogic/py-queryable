@@ -1,8 +1,6 @@
 from unittest import TestCase
 from py_queryable import expressions
-from py_queryable.expressions import unary
 from py_queryable.expressions import operators
-from py_queryable.expressions import sort
 from py_queryable.visitors.sql import SqlVisitor
 from .models import Student
 
@@ -11,244 +9,288 @@ class TestSqlExpressions(TestCase):
 
     def setUp(self):
         self.visitor = SqlVisitor()
-        self.table_expression = expressions.TableExpression(Student)
 
     def test_select_expression(self):
-        se = expressions.UnaryExpression(Student, expressions.SelectExpression(Student, lambda x: x.first_name), self.table_expression)
+        se = operators.SelectOperator(expressions.TableExpression(Student), lambda x: x.first_name)
         sql = self.visitor.visit(se)
-        correct = u"SELECT student.first_name AS first_name FROM student"
-        self.assertEqual(
-            sql,
-            correct,
-            u"{0} does not equal {1}".format(sql, correct)
-        )
+        self.assertEqual(sql, u"SELECT x.first_name FROM student x")
+
+        se = operators.SelectOperator(expressions.TableExpression(Student), lambda x: (x.first_name, x.last_name))
+        sql = self.visitor.visit(se)
+        self.assertEqual(sql, u"SELECT x.first_name, x.last_name FROM student x")
+
+        se = operators.SelectOperator(expressions.TableExpression(Student), lambda x: { 'first': x.first_name, 'last': x.last_name })
+        sql = self.visitor.visit(se)
+        self.assertEqual(sql, u"SELECT x.first_name AS 'first', x.last_name AS 'last' FROM student x")
 
     def test_select_all(self):
-        se = expressions.UnaryExpression(Student, expressions.SelectExpression(Student), self.table_expression)
+        se = operators.SelectOperator(expressions.TableExpression(Student))
         sql = self.visitor.visit(se)
-        self.assertTrue(sql.startswith(u"SELECT"))
-        self.assertTrue(sql.endswith(u"FROM student"))
-        self.assertTrue(u"student.first_name AS first_name" in sql)
-        self.assertTrue(u"student.student_id AS student_id" in sql)
-        self.assertTrue(u"student.last_name AS last_name" in sql)
-        self.assertTrue(u"student.gpa AS gpa")
+        self.assertEqual(sql, u"SELECT student.student_id, student.first_name, student.gpa, student.last_name FROM student")
+
+        se = operators.SelectOperator(expressions.TableExpression(Student), lambda s: s)
+        sql = self.visitor.visit(se)
+        self.assertEqual(sql, u"SELECT s.student_id, s.first_name, s.gpa, s.last_name FROM student s")
 
     def test_where_expression(self):
-        we = unary.WhereExpression(Student, lambda x: x.gpa > 10, self.table_expression)
+        we = operators.WhereOperator(expressions.TableExpression(Student), lambda x: x.gpa > 10)
         sql = self.visitor.visit(we)
-        self.assertTrue(sql.endswith(u"student.gpa > 10"))
+        self.assertEquals(sql, u"SELECT * FROM (SELECT student.student_id, student.first_name, student.gpa, student.last_name FROM student) x WHERE x.gpa > 10")
 
     def test_where_expression_complex(self):
-        we = unary.WhereExpression(
-            Student,
-            lambda x: (x.gpa > 10 and x.first_name == u'Bruce') or x.first_name == u'Dustin',
-            self.table_expression
-        )
-        sql = self.visitor.visit(we)
-        self.assertTrue(
-            sql.endswith(u"WHERE (student.gpa > 10 AND student.first_name = 'Bruce') OR student.first_name = 'Dustin'")
-        )
-
-        we = unary.WhereExpression(
-                Student,
-                lambda x: ((x.first_name == u'Bruce' and x.last_name == u'Fenske') or x.first_name == u'Dustin') or (x.gpa > 10 and x.gpa < 20),
-                self.table_expression
+        we = operators.WhereOperator(
+            expressions.TableExpression(Student), 
+            lambda x: (x.gpa > 10 and x.first_name == u'Bruce') or x.first_name == u'Dustin'
             )
         sql = self.visitor.visit(we)
-        self.assertTrue(
-            sql.endswith(u"WHERE (student.first_name = 'Bruce' AND student.last_name = 'Fenske') OR (student.first_name = 'Dustin' OR (student.gpa > 10 AND student.gpa < 20))")
+        self.assertEquals(sql, u"SELECT * FROM (SELECT student.student_id, student.first_name, student.gpa, student.last_name FROM student) x WHERE (x.gpa > 10 AND x.first_name = 'Bruce') OR x.first_name = 'Dustin'")
+
+        we = operators.WhereOperator(
+            expressions.TableExpression(Student),
+            lambda x: ((x.first_name == u'Bruce' and x.last_name == u'Fenske') or x.first_name == u'Dustin') or (x.gpa > 10 and x.gpa < 20)
         )
+        sql = self.visitor.visit(we)
+        self.assertEquals(sql, u"SELECT * FROM (SELECT student.student_id, student.first_name, student.gpa, student.last_name FROM student) x WHERE (x.first_name = 'Bruce' AND x.last_name = 'Fenske') OR (x.first_name = 'Dustin' OR (x.gpa > 10 AND x.gpa < 20))")
 
     def test_count_expression(self):
-        ce = unary.CountExpression(
-            Student, 
-            expressions.UnaryExpression(Student, expressions.SelectExpression(Student), self.table_expression)
-        )
+        ce = operators.CountOperator(expressions.TableExpression(Student))
         sql = self.visitor.visit(ce)
         self.assertEqual(
             sql,
-            u"SELECT COUNT(*) FROM (SELECT student.student_id AS student_id, student.first_name AS first_name, student.gpa AS gpa, student.last_name AS last_name FROM student)"
+            u"SELECT COUNT(*) FROM student"
+        )
+
+        ce = operators.CountOperator(operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.student_id))
+        sql = self.visitor.visit(ce)
+        self.assertEqual(
+            sql,
+            u"SELECT COUNT(*) FROM (SELECT s.student_id FROM student s)"
         )
 
     def test_take_expression(self):
-        qe = expressions.UnaryExpression(
-            Student,
-            expressions.SelectExpression(Student, lambda s: s.first_name), self.table_expression)
-        te = unary.TakeExpression(Student, qe, 1)
+        te = operators.TakeOperator(operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.first_name), 1)
         sql = self.visitor.visit(te)
-        self.assertEqual(sql, u"SELECT student.first_name AS first_name FROM student LIMIT 1")
+        self.assertEqual(sql, u"SELECT s.first_name FROM student s LIMIT 1")
+
+        te = operators.TakeOperator(expressions.TableExpression(Student), 1)
+        sql = self.visitor.visit(te)
+        self.assertEqual(sql, u'SELECT student.student_id, student.first_name, student.gpa, student.last_name FROM student LIMIT 1')
 
     def test_skip_expression(self):
-        se = unary.SkipExpression(
-            Student,
-            expressions.UnaryExpression(Student, expressions.SelectExpression(Student, lambda s: s.first_name), self.table_expression), 1)
+        se = operators.SkipOperator(operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.first_name), 1)
         sql = self.visitor.visit(se)
-        self.assertEqual(sql, u"SELECT student.first_name AS first_name FROM student OFFSET 1")
+        self.assertEqual(sql, u"SELECT s.first_name FROM student s LIMIT -1 OFFSET 1")
+
+        se = operators.SkipOperator(expressions.TableExpression(Student), 1)
+        sql = self.visitor.visit(se)
+        self.assertEquals(sql, u'SELECT student.student_id, student.first_name, student.gpa, student.last_name FROM student LIMIT -1 OFFSET 1')
 
     def test_skip_limit_expression(self):
-        qe = expressions.UnaryExpression(
-            Student, 
-            expressions.SelectExpression(Student, lambda s: s.first_name), self.table_expression)
-        se = unary.SkipExpression(Student, qe, 1)
-        te = unary.TakeExpression(Student, se, 1)
-        sql = self.visitor.visit(te)
-        self.assertEqual(sql, u"SELECT student.first_name AS first_name FROM student OFFSET 1 LIMIT 1")
+        qe = operators.TakeOperator(operators.SkipOperator(operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.first_name), 1), 1)
+        sql = self.visitor.visit(qe)
+        self.assertEqual(sql, u"SELECT s.first_name FROM student s LIMIT 1 OFFSET 1")
 
-        te = unary.TakeExpression(Student, qe, 1)
-        se = unary.SkipExpression(Student, te, 1)
-        sql = self.visitor.visit(se)
-        self.assertEqual(sql, u"SELECT student.first_name AS first_name FROM student LIMIT 1 OFFSET 1")
+        qe = operators.TakeOperator(operators.SkipOperator(expressions.TableExpression(Student), 1), 1)
+        sql = self.visitor.visit(qe)
+        self.assertEqual(sql, u'SELECT student.student_id, student.first_name, student.gpa, student.last_name FROM student LIMIT 1 OFFSET 1')
 
-    def test_order_by_operator(self):
-        obo = operators.OrderByOperator(Student, lambda x: x.first_name)
-        sql = self.visitor.visit(obo)
-        self.assertEqual(sql, u"ORDER BY student.first_name")
+        qe = operators.SkipOperator(operators.TakeOperator(operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.first_name), 1), 1)
+        sql = self.visitor.visit(qe)
+        self.assertEqual(sql, u"SELECT s.first_name FROM student s LIMIT 1 OFFSET 1")
+
+        qe = operators.SkipOperator(operators.TakeOperator(expressions.TableExpression(Student), 1), 1)
+        sql = self.visitor.visit(qe)
+        self.assertEqual(sql, u'SELECT student.student_id, student.first_name, student.gpa, student.last_name FROM student LIMIT 1 OFFSET 1')
 
     def test_order_by_expression(self):
-        te = expressions.UnaryExpression(
-            Student, 
-            expressions.SelectExpression(Student, lambda s: s.first_name), self.table_expression)
-        obe = unary.OrderByExpression(Student, lambda s: s.first_name, te)
-        sql = self.visitor.visit(obe)
-        self.assertEqual(sql, u"SELECT student.first_name AS first_name FROM student ORDER BY student.first_name ASC")
+        te = operators.OrderByOperator(
+            operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.first_name),
+            lambda s: s.first_name)
+        sql = self.visitor.visit(te)
+        self.assertEqual(sql, u"SELECT * FROM (SELECT s.first_name FROM student s) s ORDER BY s.first_name ASC")
+
+        te = operators.OrderByOperator(
+            expressions.TableExpression(Student),
+            lambda s: s.first_name
+        )
+        sql = self.visitor.visit(te)
+        self.assertEqual(
+            sql, 
+            u"SELECT * FROM (SELECT student.student_id, student.first_name, student.gpa, student.last_name FROM student) s ORDER BY s.first_name ASC"
+        )
+
 
     def test_then_by_expression(self):
-        te = expressions.UnaryExpression(
-            Student,
-            expressions.SelectExpression(Student, lambda s: (s.first_name, s.gpa)), self.table_expression)
-        tbe = unary.ThenByExpression(
-            Student, 
-            lambda s: s.gpa,
-            unary.OrderByExpression(Student, lambda s: s.first_name, te))
-        sql = self.visitor.visit(tbe)
+        te = operators.ThenByOperator(
+            operators.OrderByOperator(
+                operators.SelectOperator(
+                    expressions.TableExpression(Student),
+                    lambda s: (s.first_name, s.gpa)
+                ), lambda s: s.first_name
+            ), lambda s: s.gpa
+        )
+        sql = self.visitor.visit(te)
         self.assertEqual(
             sql,
-            u"SELECT student.first_name AS first_name, student.gpa AS gpa FROM student ORDER BY student.first_name ASC , student.gpa ASC")
+            u"SELECT * FROM (SELECT s.first_name, s.gpa FROM student s) s ORDER BY s.first_name ASC, s.gpa ASC")
 
-        tbde = sort.ThenByDescendingExpression(
-            Student,
-            lambda s: s.gpa, unary.OrderByExpression(Student, lambda s: s.first_name, te))
+        te = operators.ThenByOperator(
+            operators.OrderByOperator(
+                operators.SelectOperator(
+                    expressions.TableExpression(Student),
+                    lambda s: (s.first_name, s.gpa)
+                ), lambda s: s.first_name
+            ), lambda u: u.gpa
+        )
+        sql = self.visitor.visit(te)
+        self.assertEqual(
+            sql,
+            u"SELECT * FROM (SELECT s.first_name, s.gpa FROM student s) s ORDER BY s.first_name ASC, s.gpa ASC"
+        )
+
+        tbde = operators.ThenByDescendingOperator(
+            operators.OrderByOperator(
+                operators.SelectOperator(expressions.TableExpression(Student)),
+                lambda s: s.first_name
+            ), lambda s: s.gpa
+        )
         sql = self.visitor.visit(tbde)
         self.assertEqual(
             sql,
-            u"SELECT student.first_name AS first_name, student.gpa AS gpa FROM student ORDER BY student.first_name ASC , student.gpa DESC")
+            u"SELECT * FROM (SELECT student.student_id, student.first_name, student.gpa, student.last_name FROM student) s ORDER BY s.first_name ASC, s.gpa DESC")
 
     def test_order_by_descending_expression(self):
-        te = expressions.UnaryExpression(
-            Student,
-            expressions.SelectExpression(Student, lambda s: s.first_name), self.table_expression)
-        obe = sort.OrderByDescendingExpression(Student, lambda s: s.first_name, te)
-        sql = self.visitor.visit(obe)
-        self.assertEqual(sql, u"SELECT student.first_name AS first_name FROM student ORDER BY student.first_name DESC")
+        te = operators.OrderByDescendingOperator(
+            operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.first_name),
+            lambda s: s.first_name
+        )
+        sql = self.visitor.visit(te)
+        self.assertEqual(sql, u"SELECT * FROM (SELECT s.first_name FROM student s) s ORDER BY s.first_name DESC")
+
+        te = operators.OrderByDescendingOperator(
+            expressions.TableExpression(Student),
+            lambda s: s.first_name
+        )
+        sql = self.visitor.visit(te)
+        self.assertEqual(sql, u"SELECT * FROM (SELECT student.student_id, student.first_name, student.gpa, student.last_name FROM student) s ORDER BY s.first_name DESC")
 
     def test_then_by_descending_expression(self):
-        te = expressions.UnaryExpression(
-            Student, 
-            expressions.SelectExpression(Student, lambda s: (s.first_name, s.gpa)), self.table_expression)
-        tbde = sort.ThenByDescendingExpression(
-            Student,
-            lambda s: s.gpa,
-            sort.OrderByDescendingExpression(Student, lambda s: s.first_name, te)
+        te = operators.ThenByDescendingOperator(
+            operators.OrderByDescendingOperator(
+                operators.SelectOperator(
+                    expressions.TableExpression(Student),
+                    lambda s: (s.first_name, s.gpa)
+                ),
+                lambda s: s.first_name
+            ),
+            lambda s: s.gpa
         )
-        sql = self.visitor.visit(tbde)
+        sql = self.visitor.visit(te)
         self.assertEqual(
             sql,
-            u"SELECT student.first_name AS first_name, student.gpa AS gpa FROM student ORDER BY student.first_name DESC , student.gpa DESC"
+            u"SELECT * FROM (SELECT s.first_name, s.gpa FROM student s) s ORDER BY s.first_name DESC, s.gpa DESC"
         )
 
-        tbde = unary.ThenByExpression(
-            Student,
-            lambda s: s.gpa,
-            sort.OrderByDescendingExpression(Student, lambda s: s.first_name, te)
+        te = operators.ThenByOperator(
+            operators.OrderByDescendingOperator(
+                expressions.TableExpression(Student),
+                lambda s: s.first_name
+            ),
+            lambda s: s.gpa
         )
-
-        sql = self.visitor.visit(tbde)
+        sql = self.visitor.visit(te)
         self.assertEqual(
             sql,
-            u"SELECT student.first_name AS first_name, student.gpa AS gpa FROM student ORDER BY student.first_name DESC , student.gpa ASC"
+            u"SELECT * FROM (SELECT student.student_id, student.first_name, student.gpa, student.last_name FROM student) s ORDER BY s.first_name DESC, s.gpa ASC"
         )
 
     def test_max_expression(self):
-        te = expressions.UnaryExpression(
-            Student,
-            expressions.SelectExpression(Student),
-            self.table_expression)
-        me = unary.MaxExpression(Student, te, lambda s: s.gpa)
-        sql = self.visitor.visit(me)
+        te = operators.MaxOperator(expressions.TableExpression(Student))
+        self.assertRaises(AttributeError, self.visitor.visit, te)
+
+        te = operators.MaxOperator(expressions.TableExpression(Student), lambda s: s.gpa)
+        sql = self.visitor.visit(te)
         self.assertEqual(
             sql,
-            u"SELECT MAX(student.gpa) FROM student"
+            u"SELECT MAX(s.gpa) FROM (SELECT s.gpa FROM student s) s"
         )
 
-        te = expressions.UnaryExpression(
-            Student,
-            expressions.SelectExpression(Student, lambda s: s.gpa), self.table_expression)
-        me = unary.MaxExpression(Student, te)
-        sql = self.visitor.visit(me)
+        te = operators.MaxOperator(operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.gpa))
+        sql = self.visitor.visit(te)
         self.assertEqual(
             sql,
-            u"SELECT MAX(student.gpa) FROM student"
+            u"SELECT MAX(s.gpa) FROM (SELECT s.gpa FROM student s) s"
+        )
+
+        te = operators.MaxOperator(operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.gpa), lambda u: u.gpa)
+        sql = self.visitor.visit(te)
+        self.assertEqual(
+            sql,
+            u"SELECT MAX(u.gpa) FROM (SELECT s.gpa FROM student s) u"
         )
 
     def test_min_expression(self):
-        te = expressions.UnaryExpression(
-            Student,
-            expressions.SelectExpression(Student), self.table_expression)
-        me = unary.MinExpression(Student, te, lambda s: s.gpa)
-        sql = self.visitor.visit(me)
+        te = operators.MinOperator(expressions.TableExpression(Student), lambda s: s.gpa)
+        sql = self.visitor.visit(te)
         self.assertEqual(
             sql,
-            u"SELECT MIN(student.gpa) FROM student"
+            u"SELECT MIN(s.gpa) FROM (SELECT s.gpa FROM student s) s"
         )
 
-        te = expressions.UnaryExpression(
-            Student,
-            expressions.SelectExpression(Student, lambda s: s.gpa), self.table_expression)
-        me = unary.MinExpression(Student, te)
-        sql = self.visitor.visit(me)
+        te = operators.MinOperator(operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.gpa))
+        sql = self.visitor.visit(te)
         self.assertEqual(
             sql,
-            u"SELECT MIN(student.gpa) FROM student"
+            u"SELECT MIN(s.gpa) FROM (SELECT s.gpa FROM student s) s"
+        )
+
+        te = operators.MinOperator(operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.gpa), lambda u: u.gpa)
+        sql = self.visitor.visit(te)
+        self.assertEqual(
+            sql,
+            u"SELECT MIN(u.gpa) FROM (SELECT s.gpa FROM student s) u"
         )
 
     def test_sum_expression(self):
-        te = expressions.UnaryExpression(
-            Student,
-            expressions.SelectExpression(Student), self.table_expression)
-        me = unary.SumExpression(Student, te, lambda s: s.gpa)
-        sql = self.visitor.visit(me)
+        te = operators.SumOperator(expressions.TableExpression(Student), lambda s: s.gpa)
+        sql = self.visitor.visit(te)
         self.assertEqual(
             sql,
-            u"SELECT SUM(student.gpa) FROM student"
+            u"SELECT SUM(s.gpa) FROM (SELECT s.gpa FROM student s) s"
         )
 
-        te = expressions.UnaryExpression(
-            Student,
-            expressions.SelectExpression(Student, lambda s: s.gpa), self.table_expression)
-        me = unary.SumExpression(Student, te)
-        sql = self.visitor.visit(me)
+        te = operators.SumOperator(operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.gpa))
+        sql = self.visitor.visit(te)
         self.assertEqual(
             sql,
-            u"SELECT SUM(student.gpa) FROM student"
+            u"SELECT SUM(s.gpa) FROM (SELECT s.gpa FROM student s) s"
+        )
+
+        te = operators.SumOperator(operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.gpa), lambda u: u.gpa)
+        sql = self.visitor.visit(te)
+        self.assertEqual(
+            sql,
+            u"SELECT SUM(u.gpa) FROM (SELECT s.gpa FROM student s) u"
         )
 
     def test_avg_expression(self):
-        te = expressions.UnaryExpression(
-            Student,
-            expressions.SelectExpression(Student), self.table_expression)
-        me = unary.AvgExpression(Student, te, lambda s: s.gpa)
-        sql = self.visitor.visit(me)
+        te = operators.AveOperator(expressions.TableExpression(Student), lambda s: s.gpa)
+        sql = self.visitor.visit(te)
         self.assertEqual(
             sql,
-            u"SELECT AVG(student.gpa) FROM student"
+            u"SELECT AVG(s.gpa) FROM (SELECT s.gpa FROM student s) s"
         )
 
-        te = expressions.UnaryExpression(
-            Student,
-            expressions.SelectExpression(Student, lambda s: s.gpa), self.table_expression)
-        me = unary.AvgExpression(Student, te)
-        sql = self.visitor.visit(me)
+        te = operators.AveOperator(operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.gpa))
+        sql = self.visitor.visit(te)
         self.assertEqual(
             sql,
-            u"SELECT AVG(student.gpa) FROM student"
+            u"SELECT AVG(s.gpa) FROM (SELECT s.gpa FROM student s) s"
+        )
+
+        te = operators.AveOperator(operators.SelectOperator(expressions.TableExpression(Student), lambda s: s.gpa), lambda u: u.gpa)
+        sql = self.visitor.visit(te)
+        self.assertEqual(
+            sql,
+            u"SELECT AVG(u.gpa) FROM (SELECT s.gpa FROM student s) u"
         )
