@@ -56,3 +56,4 @@ target/
 
 # VS Code
 .vscode/settings.json
+sqlite_test.db-journal
