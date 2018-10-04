@@ -1,5 +1,3 @@
-__author__ = 'ViraLogic Software'
-
 import inspect
 import db_providers
 from db_providers import *
@@ -34,9 +32,7 @@ class ConnectionManager(object):
         connections = [
             cls
             for name, cls in inspect.getmembers(db_providers)
-            if inspect.isclass(cls)
-            and hasattr(cls, '__provider_name__')
-            and issubclass(cls, DbConnectionBase)
+            if inspect.isclass(cls) and hasattr(cls, '__provider_name__') and issubclass(cls, DbConnectionBase)
         ]
         result = {}
         for cls in connections:
@@ -56,6 +52,3 @@ class ConnectionManager(object):
         except KeyError:
             raise Exception("Unsupported connection provider")
         return cls(connection_string)
-
-
-

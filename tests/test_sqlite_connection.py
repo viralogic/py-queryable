@@ -22,7 +22,8 @@ class TestSqlite(TestCase):
             u'Provider config property is not a Provider Config instance'
         )
         self.assertIsNotNone(self.conn.connection, u'Connection is null')
-        self.assertIsInstance(self.conn.connection, sqlite3.Connection, u'Connection is not a sqlite3 connection')
+        self.assertIsInstance(self.conn.connection, sqlite3.Connection,
+                              u'Connection is not a sqlite3 connection')
 
     def test_connection_manager(self):
         self.conn = ConnectionManager.get_connection(self.path)
@@ -56,9 +57,11 @@ class TestSqlite(TestCase):
         self.conn.save_changes()
 
         sql = u"SELECT name FROM sqlite_master WHERE type = 'index' AND name='{0}';"
-        unique_column = filter(lambda c: c[1].is_unique, StubIntUnique.inspect_columns())
+        unique_column = filter(
+            lambda c: c[1].is_unique, StubIntUnique.inspect_columns())
         if len(unique_column) != 1:
-            raise Exception(u"Incorrect number of unique columns in {0}".format(StubIntUnique.table_name()))
+            raise Exception(u"Incorrect number of unique columns in {0}".format(
+                StubIntUnique.table_name()))
         column_name = unique_column[0][0]
         index_name = u"{0}_index".format(column_name)
         unique_sql = sql.format(index_name)
@@ -86,7 +89,8 @@ class TestSqlite(TestCase):
         self.conn.add(primary)
         self.conn.save_changes()
 
-        sql = u"SELECT unicode_pk FROM test_table tt WHERE tt.unicode_pk = '{0}';".format(pk)
+        sql = u"SELECT unicode_pk FROM test_table tt WHERE tt.unicode_pk = '{0}';".format(
+            pk)
         cursor = self.conn.connection.cursor()
         cursor.execute(sql)
         result = cursor.fetchone()
@@ -134,7 +138,8 @@ class TestSqlite(TestCase):
         update_test.key = self.conn.add(update_test)
         self.conn.save_changes()
 
-        sql = u"SELECT update_column from test_update_table ut WHERE ut.key_column = {0}".format(update_test.key)
+        sql = u"SELECT update_column from test_update_table ut WHERE ut.key_column = {0}".format(
+            update_test.key)
         cursor = self.conn.connection.cursor()
         cursor.execute(sql)
         result = cursor.fetchone()
@@ -157,7 +162,7 @@ class TestSqlite(TestCase):
             self.conn.connection.close()
         try:
             os.remove(self.conn.provider_config.db_uri)
-        except:
+        except BaseException:
             pass
 
 

@@ -2,6 +2,7 @@ import abc
 import ast
 from . import Expression, UnaryExpression, TableExpression, LambdaExpression
 
+
 class LambdaOperator(Expression):
     def __init__(self, exp, func):
         super(LambdaOperator, self).__init__()
@@ -19,6 +20,7 @@ class LambdaOperator(Expression):
             ast.dump(LambdaExpression.parse(self.type, self.func))
         )
 
+
 class SelectOperator(LambdaOperator):
     def __init__(self, exp, func=None):
         super(SelectOperator, self).__init__(exp, func)
@@ -26,12 +28,14 @@ class SelectOperator(LambdaOperator):
     def visit(self, visitor):
         return visitor.visit_SelectOperator(self)
 
+
 class WhereOperator(LambdaOperator):
     def __init__(self, exp, func):
         super(WhereOperator, self).__init__(exp, func)
 
     def visit(self, visitor):
         return visitor.visit_WhereOperator(self)
+
 
 class AliasOperator(UnaryExpression):
     def __init__(self, alias, exp):
@@ -41,12 +45,14 @@ class AliasOperator(UnaryExpression):
     def visit(self, visitor):
         return visitor.visit_AliasOperator(self)
 
+
 class CountOperator(UnaryExpression):
     def __init__(self, exp):
         super(CountOperator, self).__init__(exp)
 
     def visit(self, visitor):
         return visitor.visit_CountOperator(self)
+
 
 class TakeOperator(UnaryExpression):
     def __init__(self, exp, limit):
@@ -56,6 +62,7 @@ class TakeOperator(UnaryExpression):
     def visit(self, visitor):
         return visitor.visit_TakeOperator(self)
 
+
 class SkipOperator(UnaryExpression):
     def __init__(self, exp, skip):
         super(SkipOperator, self).__init__(exp)
@@ -64,12 +71,14 @@ class SkipOperator(UnaryExpression):
     def visit(self, visitor):
         return visitor.visit_SkipOperator(self)
 
+
 class MaxOperator(LambdaOperator):
     def __init__(self, exp, func=None):
         super(MaxOperator, self).__init__(exp, func)
 
     def visit(self, visitor):
         return visitor.visit_MaxOperator(self)
+
 
 class MinOperator(LambdaOperator):
     def __init__(self, exp, func=None):
@@ -78,12 +87,14 @@ class MinOperator(LambdaOperator):
     def visit(self, visitor):
         return visitor.visit_MinOperator(self)
 
+
 class SumOperator(LambdaOperator):
     def __init__(self, exp, func=None):
         super(SumOperator, self).__init__(exp, func)
 
     def visit(self, visitor):
         return visitor.visit_SumOperator(self)
+
 
 class AveOperator(LambdaOperator):
     def __init__(self, exp, func=None):
@@ -92,12 +103,14 @@ class AveOperator(LambdaOperator):
     def visit(self, visitor):
         return visitor.visit_AveOperator(self)
 
+
 class WhereOperator(LambdaOperator):
     def __init__(self, exp, func):
         super(WhereOperator, self).__init__(exp, func)
 
     def visit(self, visitor):
         return visitor.visit_WhereOperator(self)
+
 
 class OrderByOperator(LambdaOperator):
     def __init__(self, exp, func):
@@ -106,12 +119,14 @@ class OrderByOperator(LambdaOperator):
     def visit(self, visitor):
         return visitor.visit_OrderByOperator(self)
 
+
 class OrderByDescendingOperator(LambdaOperator):
     def __init__(self, exp, func):
         super(OrderByDescendingOperator, self).__init__(exp, func)
 
     def visit(self, visitor):
         return visitor.visit_OrderByDescendingOperator(self)
+
 
 class ThenByOperator(LambdaOperator):
     def __init__(self, exp, func):
@@ -120,10 +135,10 @@ class ThenByOperator(LambdaOperator):
     def visit(self, visitor):
         return visitor.visit_ThenByOperator(self)
 
+
 class ThenByDescendingOperator(LambdaOperator):
     def __init__(self, exp, func):
         super(ThenByDescendingOperator, self).__init__(exp, func)
 
     def visit(self, visitor):
         return visitor.visit_ThenByDescendingOperator(self)
-

@@ -22,7 +22,7 @@ class ColumnProxy(object):
 
     @value.setter
     def value(self, value):
-        if type(value) != self.column.column_type:
+        if not isinstance(value, self.column.column_type):
             raise InvalidArgumentError(
                 u"{0} does not equal {1}:{2}".format(value, self.column.column_type, self.column.column_name)
             )

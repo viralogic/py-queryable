@@ -1,5 +1,3 @@
-__author__ = 'ViraLogic Software'
-
 import abc
 
 
@@ -7,6 +5,7 @@ class ProviderConfig(object):
     """
     Class that holds parameters for database connection provider
     """
+
     def __init__(self, host, user, password, db_uri):
         self.host = host
         self.user = user
@@ -39,9 +38,8 @@ class SqliteUriParser(UriParserBase):
     """
     Implementation of UriParserBase for Sqlite
     """
+
     def parse_uri(self):
-        return ProviderConfig(u'', u'', u'', self.connection_uri.split(':')[1])
-
-
-
-
+        uri = self.connection_uri.split(':')[1]
+        uri = u":{0}:".format(uri) if uri == u"memory" else uri
+        return ProviderConfig(u'', u'', u'', uri)

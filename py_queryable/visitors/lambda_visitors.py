@@ -9,7 +9,7 @@ class SqlLambdaTranslator(ast.NodeVisitor):
         super(SqlLambdaTranslator, self).__init__()
 
     def find_node_type(self, start_node, node_type, children_attr):
-        if type(start_node) == node_type:
+        if isinstance(start_node, node_type):
             return start_node
         if not hasattr(start_node, children_attr):
             raise AttributeError(u"No such attribute = {0} found for node = {1}".format(children_attr, start_node.__repr__()))
@@ -17,7 +17,7 @@ class SqlLambdaTranslator(ast.NodeVisitor):
         q = deque(children)
         while len(q) > 0:
             node = q.popleft()
-            if type(node) == node_type:
+            if isinstance(node, node_type):
                 return node
             for n in getattr(node, children_attr):
                 q.append(n)
@@ -79,10 +79,10 @@ class SqlLambdaTranslator(ast.NodeVisitor):
 
     def visit_Compare(self, node):
         self.generic_visit(node)
-        
+
         operator = node.ops[0].sql
         if operator == "IN":
-            if type(node.left) == ast.Str:
+            if isinstance(node.left, ast.Str):
                 node.id = node.comparators[0].id
                 node.sql = u"{0} {1} '%{2}%'".format(node.comparators[0].sql, node.ops[0].text_sql, node.left.sql)
             elif isinstance(node.left, unicode) and isinstance(node.comparators[0], unicode):
@@ -116,7 +116,6 @@ class SqlLambdaTranslator(ast.NodeVisitor):
             vals.select(lambda v: u"({0})".format(v.sql) if isinstance(v, ast.BoolOp) else v.sql)
         )
 
-
     def visit_BinOp(self, node):
         self.generic_visit(node)
         node.sql = u"{0} {1} {2}".format(node.left.sql, node.op.sql, node.right.sql)
@@ -149,7 +148,3 @@ class SqlLambdaTranslator(ast.NodeVisitor):
             result.append(u"{0} AS '{1}'".format(node.values[i].sql, node.keys[i].s))
         node.sql = u", ".join(result)
         node.id = node.values[0].id
-
-
-
-
