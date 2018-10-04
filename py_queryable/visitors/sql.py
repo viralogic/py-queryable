@@ -54,9 +54,9 @@ class SqlVisitor(Visitor):
         if select is None:
             expression.exp = operators.SelectOperator(expression.exp)
         t = LambdaExpression.parse(expression.type, expression.func)
-        return u"{0} WHERE {1}".format(
-            expression.exp.visit(self),
-            t.body.sql if select is not None else t.body.sql.replace(u"{0}.".format(t.body.id), u"{0}.".format(expression.exp.type.__table_name__))
+        return u"SELECT * {0} WHERE {1}".format(
+            operators.AliasOperator(t.body.id, expression.exp).visit(self),
+            t.body.sql
         )
 
     def visit_TableExpression(self, expression):
@@ -89,17 +89,18 @@ class SqlVisitor(Visitor):
                 expression.exp.exp = operators.SelectOperator(expression.exp.exp)
             else:
                 expression.exp = operators.SelectOperator(expression.exp)
+        if type(expression.exp) != operators.TakeOperator:
+            expression.exp = operators.TakeOperator(expression.exp, -1)
         return u"{0} OFFSET {1}".format(expression.exp.visit(self), expression.skip)
 
     def visit_OrderByOperator(self, expression):
-        expression = self._set_lambda(expression)
         t = LambdaExpression.parse(expression.type, expression.func)
         select = expression.find(operators.SelectOperator)
         if select is None:
             expression.exp = operators.SelectOperator(expression.exp)
-        return u"{0} ORDER BY {1} ASC".format(
-            expression.exp.visit(self),
-            t.body.sql if select is not None else t.body.sql.replace(u"{0}.".format(t.body.id), u"{0}.".format(expression.exp.type.__table_name__))
+        return u"SELECT * {0} ORDER BY {1} ASC".format(
+            operators.AliasOperator(t.body.id, expression.exp).visit(self),
+            t.body.sql
         )
 
     def visit_OrderByDescendingOperator(self, expression):
@@ -110,13 +111,10 @@ class SqlVisitor(Visitor):
         if type(expression.exp) != operators.OrderByOperator and type(expression.exp) != operators.OrderByDescendingOperator:
             raise AttributeError("ThenBy needs to follow OrderBy or OrderByDescending")
         t = LambdaExpression.parse(expression.type, expression.func)
-        expression.exp = self._set_lambda(expression.exp)
         te = LambdaExpression.parse(expression.exp.type, expression.exp.func)
-        select = expression.find(operators.SelectOperator)
         return u"{0}, {1} ASC".format(
             expression.exp.visit(self),
-            t.body.sql.replace(t.body.id, te.body.id) if select is not None \
-             else t.body.sql.replace(u"{0}.".format(t.body.id), u"{0}.".format(expression.exp.type.__table_name__))
+            t.body.sql.replace(t.body.id, te.body.id)
         )
 
     def visit_ThenByDescendingOperator(self, expression):

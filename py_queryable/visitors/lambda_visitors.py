@@ -1,11 +1,27 @@
 import ast
 from py_linq import Enumerable
+from collections import deque
 
 
 class SqlLambdaTranslator(ast.NodeVisitor):
 
     def __init__(self):
         super(SqlLambdaTranslator, self).__init__()
+
+    def find_node_type(self, start_node, node_type, children_attr):
+        if type(start_node) == node_type:
+            return start_node
+        if not hasattr(start_node, children_attr):
+            raise AttributeError(u"No such attribute = {0} found for node = {1}".format(children_attr, start_node.__repr__()))
+        children = getattr(start_node, children_attr)
+        q = deque(children)
+        while len(q) > 0:
+            node = q.popleft()
+            if type(node) == node_type:
+                return node
+            for n in getattr(node, children_attr):
+                q.append(n)
+        return None
 
     def visit_Eq(self, node):
         node.sql = u"="
@@ -63,28 +79,39 @@ class SqlLambdaTranslator(ast.NodeVisitor):
 
     def visit_Compare(self, node):
         self.generic_visit(node)
-        node.id = node.left.id
-        if hasattr(node.comparators[0], u"sql"):
-            comparator = node.comparators[0].sql
-        elif isinstance(node.comparators[0], unicode):
-            comparator = u"'{0}'".format(node.comparators[0])
-        else:
-            comparator = node.comparators[0]
         
         operator = node.ops[0].sql
-        if operator == "IN" and isinstance(node.left.sql, unicode) and isinstance(comparator, unicode):
-            node.sql = u"{0} {1} '%{2}%'".format(comparator, node.ops[0].text_sql, node.left.sql)
+        if operator == "IN":
+            if type(node.left) == ast.Str:
+                node.id = node.comparators[0].id
+                node.sql = u"{0} {1} '%{2}%'".format(node.comparators[0].sql, node.ops[0].text_sql, node.left.sql)
+            elif isinstance(node.left, unicode) and isinstance(node.comparators[0], unicode):
+                node.sql = u"{0} {1} '%{2}%'".format(node.comparators[0], node.ops[0].text_sql, node.left)
+            elif isinstance(node.left, unicode) and isinstance(node.comparators[0], ast.Attribute):
+                node.id = node.comparators[0].id
+                node.sql = u"{0} {1} '%{2}%'".format(node.comparators[0].sql, node.ops[0].text_sql, node.left)
+            elif isinstance(node.left, ast.Attribute) and isinstance(node.comparators[0], unicode):
+                node.id = node.left.id
+                node.sql = u"{0} {1} '%{2}%'".format(node.left.sql, node.ops[0].sql, node.comparators[0])
+            else:
+                raise Exception(u"Don't know what to do with this node={0} for the IN operator".format(node.__repr__()))
         else:
-            node.sql = u"{0} {1} {2}".format(node.left.sql, node.ops[0].sql, comparator
-        )
+            node.id = node.left.id
+            if hasattr(node.comparators[0], u"sql"):
+                comparator = node.comparators[0].sql
+            elif isinstance(node.comparators[0], unicode):
+                comparator = u"'{0}'".format(node.comparators[0])
+            else:
+                comparator = node.comparators[0]
+            node.sql = u"{0} {1} {2}".format(node.left.sql, node.ops[0].sql, comparator)
 
     def visit_BoolOp(self, node):
         self.generic_visit(node)
         vals = Enumerable(node.values)
-        compare = vals.where(lambda c: type(c) == ast.Compare).first_or_default()
+        compare = self.find_node_type(node, ast.Compare, u"values")
         if compare is None:
             raise AttributeError(u"No ast.Compare node can be found in ast.BoolOp={0}".format(node.__repr__()))
-        node.id = compare.left.id
+        node.id = compare.id
         node.sql = u" {0} ".format(node.op.sql).join(
             vals.select(lambda v: u"({0})".format(v.sql) if isinstance(v, ast.BoolOp) else v.sql)
         )

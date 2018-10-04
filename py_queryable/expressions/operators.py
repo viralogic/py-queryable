@@ -100,14 +100,14 @@ class WhereOperator(LambdaOperator):
         return visitor.visit_WhereOperator(self)
 
 class OrderByOperator(LambdaOperator):
-    def __init__(self, exp, func=None):
+    def __init__(self, exp, func):
         super(OrderByOperator, self).__init__(exp, func)
 
     def visit(self, visitor):
         return visitor.visit_OrderByOperator(self)
 
 class OrderByDescendingOperator(LambdaOperator):
-    def __init__(self, exp, func=None):
+    def __init__(self, exp, func):
         super(OrderByDescendingOperator, self).__init__(exp, func)
 
     def visit(self, visitor):

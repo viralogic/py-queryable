@@ -61,7 +61,7 @@ class Queryable(object):
         return self.provider.provider_visitor.visit(self.expression)
 
     def select(self, func):
-        return Queryable(UnaryExpression(self.type, SelectExpression(self.type, func), self.expression), self.provider)
+        return Queryable(operators.SelectOperator(self.expression, func), self.provider)
 
     def count(self):
         query = Queryable(operators.CountOperator(self.expression), self.provider)
@@ -74,19 +74,19 @@ class Queryable(object):
         return Queryable(operators.SkipOperator(self.expression, offset), self.provider)
 
     def max(self, func=None):
-        query = Queryable(unary.MaxExpression(self.type, self.expression, func), self.provider)
+        query = Queryable(operators.MaxOperator(self.expression, func), self.provider)
         return self.provider.db_provider.execute_scalar(query.sql)
 
     def min(self, func=None):
-        query = Queryable(unary.MinExpression(self.type, self.expression, func), self.provider)
+        query = Queryable(operators.MinOperator(self.expression, func), self.provider)
         return self.provider.db_provider.execute_scalar(query.sql)
 
     def sum(self, func=None):
-        query = Queryable(unary.SumExpression(self.type, self.expression, func), self.provider)
+        query = Queryable(operators.SumOperator(self.expression, func), self.provider)
         return self.provider.db_provider.execute_scalar(query.sql)
 
     def average(self, func=None):
-        query = Queryable(unary.AvgExpression(self.type, self.expression, func), self.provider)
+        query = Queryable(operators.AveOperator(self.expression, func), self.provider)
         return self.provider.db_provider.execute_scalar(query.sql)
 
     def any(self, func=None):
@@ -108,16 +108,10 @@ class Queryable(object):
             return None
 
     def order_by(self, func):
-        return OrderedQueryable(
-            unary.OrderByExpression(self.type, func, self.expression),
-            self.provider
-        )
+        return OrderedQueryable(operators.OrderByOperator(self.expression, func), self.provider)
 
     def order_by_descending(self, func):
-        return OrderedQueryable(
-            sort.OrderByDescendingExpression(self.type, func, self.expression),
-            self.provider
-        )
+        return OrderedQueryable(operators.OrderByDescendingOperator(self.expression, func), self.provider)
 
     def where(self, func):
         return Queryable(operators.WhereOperator(self.expression, func), self.provider)
@@ -149,13 +143,7 @@ class OrderedQueryable(Queryable):
         super(OrderedQueryable, self).__init__(expression, query_provider)
 
     def then_by(self, func):
-        return OrderedQueryable(
-            unary.ThenByExpression(self.type, func, self.expression),
-            self.provider
-        )
+        return OrderedQueryable(operators.ThenByOperator(self.expression, func), self.provider)
 
     def then_by_descending(self, func):
-        return OrderedQueryable(
-            sort.ThenByDescendingExpression(self.type, func, self.expression),
-            self.provider
-        )
+        return OrderedQueryable(operators.ThenByDescendingOperator(self.expression, func), self.provider)

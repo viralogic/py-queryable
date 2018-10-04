@@ -134,8 +134,7 @@ class QueryableTest(TestCase):
         )
 
     def test_first(self):
-
-        result = self.conn.query(UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))).first()
+        result = self.conn.query(operators.SelectOperator(expressions.TableExpression(Student))).first()
         self.assertEquals(
             result.student_id,
             1,
@@ -157,15 +156,14 @@ class QueryableTest(TestCase):
 
         self.assertRaises(
             NoElementsError,
-            self.conn.query(UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))).first
+            self.conn.query(operators.SelectOperator(expressions.TableExpression(Student))).first
         )
 
     def test_first_or_default(self):
         self.conn.remove(self.student1)
         self.conn.save_changes()
 
-        result = self.conn.query(UnaryExpression(Student, SelectExpression(Student), TableExpression(Student)))\
-            .first_or_default()
+        result = self.conn.query(operators.SelectOperator(expressions.TableExpression(Student))).first_or_default()
         self.assertEquals(result.student_id, 2, u"Student ID should be 2 - get {0}".format(result.student_id))
         self.assertEquals(
             result.first_name,
@@ -180,14 +178,10 @@ class QueryableTest(TestCase):
 
         self.conn.remove(self.student2)
         self.conn.save_changes()
-        result = self.conn.query(UnaryExpression(Student, SelectExpression(Student), TableExpression(Student)))\
-            .first_or_default()
+        result = self.conn.query(operators.SelectOperator(expressions.TableExpression(Student))).first_or_default()
         self.assertIsNone(result, u"First or Default query should be none. The Student table is empty")
 
     def test_where(self):
-        # students = self.conn.query(
-        #     UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
-        # ).where(lambda s: s.student_id == 1)
         students = self.conn.query(operators.SelectOperator(expressions.TableExpression(Student))).where(lambda s: s.student_id == 1)
         num_students = students.count()
         self.assertEquals(num_students, 1, u"Should only be one student row returned in query")
@@ -206,20 +200,14 @@ class QueryableTest(TestCase):
         self.conn.add(self.student3)
         self.conn.save_changes()
 
-        students = self.conn.query(
-            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
-        ).where(lambda s: s.student_id == 1 or student.gpa >= 50)
+        students = self.conn.query(operators.SelectOperator(expressions.TableExpression(Student))).where(lambda s: s.student_id == 1 or s.gpa >= 50)
         self.assertEquals(students.count(), 2)
 
-        students = self.conn.query(
-            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
-        ).where(lambda s: s.student_id == 1 and student.gpa > 50)
+        students = self.conn.query(operators.SelectOperator(expressions.TableExpression(Student))).where(lambda s: s.student_id == 1 and s.gpa > 50)
         self.assertIsNone(students.first_or_default())
 
     def test_single(self):
-        students = self.conn.query(
-            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
-        )
+        students = self.conn.query(operators.SelectOperator(expressions.TableExpression(Student)))
         student = students.single(lambda s: s.student_id == 1)
         self.assertIsNotNone(student, u"Student instance should not be None")
         self.assertEquals(student.first_name, u"Bruce", u"First name should be Bruce")
@@ -234,9 +222,7 @@ class QueryableTest(TestCase):
         )
 
     def test_single_or_default(self):
-        students = self.conn.query(
-            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
-        )
+        students = self.conn.query(operators.SelectOperator(expressions.TableExpression(Student)))
         student = students.single_or_default(lambda s: s.student_id == 1)
         self.assertIsNotNone(student, u"Student instance should not be None")
         self.assertEquals(student.first_name, u"Bruce", u"First name should be Bruce")
@@ -255,9 +241,7 @@ class QueryableTest(TestCase):
         self.conn.add(self.student3)
         self.conn.save_changes()
 
-        students = self.conn.query(
-            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
-        )
+        students = self.conn.query(operators.SelectOperator(expressions.TableExpression(Student)))
 
         ordered_students = students.order_by(lambda x: x.gpa)
         highest_grade = 0
@@ -284,9 +268,7 @@ class QueryableTest(TestCase):
         self.conn.add(self.student3)
         self.conn.save_changes()
 
-        students = self.conn.query(
-            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
-        )
+        students = self.conn.query(operators.SelectOperator(expressions.TableExpression(Student)))
 
         # Try ordering multiple columns
         ordered_students = students.order_by(lambda x: x.gpa).then_by(lambda x: x.last_name).to_list()
@@ -307,9 +289,7 @@ class QueryableTest(TestCase):
         self.conn.add(self.student3)
         self.conn.save_changes()
 
-        students = self.conn.query(
-            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
-        )
+        students = self.conn.query(operators.SelectOperator(expressions.TableExpression(Student)))
 
         ordered_students = students.order_by_descending(lambda x: x.gpa)
         highest_grade = 100
@@ -339,9 +319,7 @@ class QueryableTest(TestCase):
         self.conn.add(self.student3)
         self.conn.save_changes()
 
-        students = self.conn.query(
-            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
-        )
+        students = self.conn.query(operators.SelectOperator(expressions.TableExpression(Student)))
 
         # Try ordering multiple columns
         ordered_students = students\
@@ -367,56 +345,39 @@ class QueryableTest(TestCase):
         self.assertEquals(ordered_students[2].last_name, u"Fenske")
 
     def test_max(self):
-        students = self.conn.query(
-            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
-        )
-        max_gpa = students.max(lambda s: s.gpa)
+        max_gpa = self.conn.query(operators.SelectOperator(expressions.TableExpression(Student))).max(lambda s: s.gpa)
         self.assertEquals(max_gpa, 50)
 
     def test_min(self):
-        students = self.conn.query(
-            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
-        )
-        min_gpa = students.min(lambda s: s.gpa)
+        min_gpa = self.conn.query(operators.SelectOperator(expressions.TableExpression(Student))).min(lambda s: s.gpa)
         self.assertEquals(min_gpa, 9)
 
     def test_sum(self):
-        students = self.conn.query(
-            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
-        )
-        sum_gpa = students.sum(lambda s: s.gpa)
+        sum_gpa = self.conn.query(operators.SelectOperator(expressions.TableExpression(Student))).sum(lambda s: s.gpa)
         self.assertEquals(sum_gpa, 59)
 
     def test_sum_exceptions(self):
-        students = self.conn.query(
-            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
-        )
+        students = self.conn.query(operators.SelectOperator(expressions.TableExpression(Student)))
         self.assertRaises(AttributeError, students.sum)
 
     def test_avg(self):
-        students = self.conn.query(
-            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
-        )
+        students = self.conn.query(operators.SelectOperator(expressions.TableExpression(Student)))
         avg_gpa = students.average(lambda s: s.gpa)
         self.assertEqual(avg_gpa, 29.5)
 
     def test_any(self):
-        students = self.conn.query(
-            UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
-        )
+        students = self.conn.query(operators.SelectOperator(expressions.TableExpression(Student)))
         self.assertTrue(students.any(lambda s: s.gpa < 50))
         self.assertFalse(students.any(lambda s: s.gpa > 80))
         self.assertTrue(students.any())
 
     def test_all(self):
-        # students = self.conn.query(
-        #     UnaryExpression(Student, SelectExpression(Student), TableExpression(Student))
-        # )
         students = self.conn.query(
             operators.SelectOperator(expressions.TableExpression(Student))
         )
         self.assertFalse(students.all(lambda s: s.gpa > 50))
         self.assertTrue(students.all(lambda s: "k" in s.last_name))
+        self.assertTrue(students.all(lambda s: u"k" in s.last_name))
         self.assertTrue(students.all())
 
     def tearDown(self):
