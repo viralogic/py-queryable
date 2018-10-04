@@ -10,11 +10,11 @@ python:
 install:
   - "pip install -qq py-linq"
   - "pip install -qq meta"
-  - "pip install -qq pytest"
+  - "pip install -qq pytest --version 3.3.0"
   - "pip install -qq pytest-cov"
   - "pip install -qq pycodestyle"
   - "pip install coveralls --quiet"
-  - "pip install ."
+  - "pip install --upgrade pip"
 
 # command to run tests
 script:
