@@ -1,5 +1,3 @@
-__author__ = 'ViraLogic Software'
-
 import abc
 
 
@@ -42,4 +40,6 @@ class SqliteUriParser(UriParserBase):
     """
 
     def parse_uri(self):
-        return ProviderConfig(u'', u'', u'', self.connection_uri.split(':')[1])
+        uri = self.connection_uri.split(':')[1]
+        uri = u":{0}:".format(uri) if uri == u"memory" else uri
+        return ProviderConfig(u'', u'', u'', uri)

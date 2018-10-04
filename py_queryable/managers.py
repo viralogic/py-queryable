@@ -1,5 +1,3 @@
-__author__ = 'ViraLogic Software'
-
 import inspect
 import db_providers
 from db_providers import *
