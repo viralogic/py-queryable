@@ -1,6 +1,6 @@
 language: python
-python: 2.7.13
-#  - "2.7"
+python:
+  - "2.7"
 #  - "3.3"
 #  - "3.4"
 #  - "3.5"
@@ -18,7 +18,7 @@ install:
 
 # command to run tests
 script:
-  - py.test -s --cov=py_queryable --cov-report xml:/tmp/cov-py_queryable.xml --junitxml=/tmp/py_queryable.xml
+#  - py.test -s --cov=py_queryable --cov-report xml:/tmp/cov-py_queryable.xml --junitxml=/tmp/py_queryable.xml
   - pycodestyle --ignore=E501 --max-line-length=88 py_queryable tests
 
 after_success:
