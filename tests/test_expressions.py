@@ -50,9 +50,7 @@ class TestSqlExpressions(TestCase):
     def test_where_expression_complex(self):
         we = operators.WhereOperator(
             expressions.TableExpression(Student),
-            lambda x: (x.gpa > 10 and x.first_name ==
-                       u'Bruce') or x.first_name == u'Dustin'
-        )
+            lambda x: (x.gpa > 10 and x.first_name == u'Bruce') or x.first_name == u'Dustin')
         sql = self.visitor.visit(we)
         self.assertEquals(
             sql,
