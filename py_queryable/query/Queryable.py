@@ -24,11 +24,11 @@ class Queryable(object):
                 yield r[0]
             # if returning more than one column
             else:
-                if result_type == type(list):
+                if isinstance(list, result_type):
                     yield Enumerable(r).select(lambda x: x[0]).to_list()
-                elif result_type == type(tuple):
+                elif isinstance(tuple, result_type):
                     yield tuple(Enumerable(r).select(lambda x: x[0]).to_list())
-                elif result_type == type(dict):
+                elif isinstance(dict, result_type):
                     result = {}
                     for i in range(0, len(r), 1):
                         result.__setattr__(cursor.description[i][0], r[i])
@@ -91,7 +91,7 @@ class Queryable(object):
 
     def any(self, func=None):
         return self.count() > 0 if func is None else self.where(func).count() > 0
-    
+
     def all(self, func=None):
         if func is None:
             return True

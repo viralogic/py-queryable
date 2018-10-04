@@ -36,7 +36,7 @@ class DbConnectionBase(object):
         columns = []
         column_values = []
         for k, v in filter(lambda c: not c[1].column.is_primary_key or (
-            c[1].column.is_primary_key and c[1].column.column_type != int), proxy_instance.columns.iteritems()):
+                c[1].column.is_primary_key and c[1].column.column_type != int), proxy_instance.columns.iteritems()):
             columns.append(proxy_instance.column_name(k))
             if v.column.column_type == unicode:
                 if v.value is None or len(v.value) == 0:
@@ -189,7 +189,7 @@ class SqliteDbConnection(DbConnectionBase):
     def create_table(self, model):
         try:
             columns = model.inspect_columns()
-        except:
+        except BaseException:
             raise InvalidArgumentError(u"Does not appear to be a proper data model that inherits from Model")
         primary_keys = filter(lambda c: c[1].is_primary_key, columns)
         if len(primary_keys) != 1:
@@ -224,7 +224,7 @@ class SqliteDbConnection(DbConnectionBase):
     def create_indexes(self, model):
         try:
             unique_columns = filter(lambda c: c[1].is_unique, model.inspect_columns())
-        except:
+        except BaseException:
             raise InvalidArgumentError(u"Does not appear to be a proper data model that inherits from Model")
         for column_name, column in unique_columns:
             index_name = u"{0}_index".format(column_name)
@@ -293,7 +293,3 @@ class SqliteDbConnection(DbConnectionBase):
         if result is None:
             raise Exception(u"No scalar result from {0}".format(sql))
         return result[0]
-
-
-
-

@@ -8,4 +8,3 @@ class NullArgumentError(Exception):
 
 class InvalidArgumentError(Exception):
     pass
-

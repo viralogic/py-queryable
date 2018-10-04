@@ -4,6 +4,7 @@ import ast
 from collections import deque
 from ..visitors.lambda_visitors import SqlLambdaTranslator
 
+
 class LambdaExpression(object):
 
     """
@@ -17,6 +18,7 @@ class LambdaExpression(object):
         translator.generic_visit(tree)
         return tree
 
+
 class Expression(object):
     def __init__(self):
         self.visited = False
@@ -26,7 +28,7 @@ class Expression(object):
         return self.__repr__() == other.__repr__()
 
     @property
-    def type(self):   
+    def type(self):
         if self.class_type is None:
             t = self.find(TableExpression)
             if t is None:
@@ -48,16 +50,17 @@ class Expression(object):
         :param expression: An expression type
         :return: First expression that matches given expression else None
         """
-        if type(self) == expression:
+        if isinstance(self, expression):
             return expression
         q = deque(self.children)
         while len(q) > 0:
             node = q.popleft()
-            if type(node) == expression:
+            if isinstance(node, expression):
                 return node
             for n in node.children:
                 q.append(n)
         return None
+
 
 class TableExpression(Expression):
     def __init__(self, T):
@@ -75,6 +78,7 @@ class TableExpression(Expression):
 
     def __repr__(self):
         return u"Table(table_name={0})".format(self.type.table_name)
+
 
 class UnaryExpression(Expression):
     def __init__(self, exp):

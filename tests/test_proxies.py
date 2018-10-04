@@ -23,7 +23,10 @@ class TestProxy(TestCase):
 
         self.test_model = StubModel()
         self.test_model.test_int_column = "string"
-        self.assertRaises(InvalidArgumentError, DynamicModelProxy.create_proxy_from_model_instance, self.test_model)
+        self.assertRaises(
+            InvalidArgumentError,
+            DynamicModelProxy.create_proxy_from_model_instance,
+            self.test_model)
 
         test_model1 = StubModel()
         test_model1.test_int_column = 5

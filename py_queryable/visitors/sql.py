@@ -6,11 +6,11 @@ from . import Visitor
 
 
 class SqlVisitor(Visitor):
-    
+
     def _set_lambda(self, expression):
         if expression.func is None:
-            if type(expression.exp) != operators.SelectOperator\
-             or (type(expression.exp) == operators.SelectOperator and expression.exp.func is None):
+            if not isinstance(expression.exp, operators.SelectOperator)\
+                    or (isinstance(expression.exp, operators.SelectOperator) and expression.exp.func is None):
                 raise AttributeError("lambda function is required for SelectOperator")
             expression.func = expression.exp.func
         return expression
@@ -21,14 +21,14 @@ class SqlVisitor(Visitor):
         return u"SELECT {0}({1}) {2}".format(
             sql,
             t.body.sql,
-            operators.AliasOperator(t.body.id, expression.exp).visit(self)\
-            if type(expression.exp) == operators.SelectOperator\
+            operators.AliasOperator(t.body.id, expression.exp).visit(self)
+            if isinstance(expression.exp, operators.SelectOperator)
             else operators.AliasOperator(t.body.id, operators.SelectOperator(expression.exp, expression.func)).visit(self))
 
     def visit_SelectOperator(self, expression):
         cols = Enumerable(expression.type.inspect_columns())
         if not cols.count() > 0:
-                raise TypeError(u"{0} has no defined columns in model".format(expression.type.__class__.__name__))
+            raise TypeError(u"{0} has no defined columns in model".format(expression.type.__class__.__name__))
         if expression.func is not None:
             t = LambdaExpression.parse(expression.type, expression.func)
             if not hasattr(t.body, "sql"):
@@ -64,32 +64,32 @@ class SqlVisitor(Visitor):
 
     def visit_CountOperator(self, expression):
         result = expression.exp.visit(self)
-        if type(expression.exp) != TableExpression:
+        if not isinstance(expression.exp, TableExpression):
             result = u"FROM ({0})".format(result)
         return u"SELECT COUNT(*) {0}".format(result)
 
     def visit_TakeOperator(self, expression):
         select = expression.find(operators.SelectOperator)
         if select is None:
-            if type(expression.exp) == operators.SkipOperator:
+            if isinstance(expression.exp, operators.SkipOperator):
                 expression.exp.exp = operators.SelectOperator(expression.exp.exp)
             else:
                 expression.exp = operators.SelectOperator(expression.exp)
-        if type(expression.exp) == operators.SkipOperator:
+        if isinstance(expression.exp, operators.SkipOperator):
             return operators.SkipOperator(
                 operators.TakeOperator(expression.exp.exp, expression.limit),
                 expression.exp.skip
-                ).visit(self)
+            ).visit(self)
         return u"{0} LIMIT {1}".format(expression.exp.visit(self), expression.limit)
 
     def visit_SkipOperator(self, expression):
         select = expression.find(operators.SelectOperator)
         if select is None:
-            if type(expression.exp) == operators.TakeOperator:
+            if isinstance(expression.exp, operators.TakeOperator):
                 expression.exp.exp = operators.SelectOperator(expression.exp.exp)
             else:
                 expression.exp = operators.SelectOperator(expression.exp)
-        if type(expression.exp) != operators.TakeOperator:
+        if not isinstance(expression.exp, operators.TakeOperator):
             expression.exp = operators.TakeOperator(expression.exp, -1)
         return u"{0} OFFSET {1}".format(expression.exp.visit(self), expression.skip)
 
@@ -108,7 +108,7 @@ class SqlVisitor(Visitor):
         return u"{0} DESC".format(sql)
 
     def visit_ThenByOperator(self, expression):
-        if type(expression.exp) != operators.OrderByOperator and type(expression.exp) != operators.OrderByDescendingOperator:
+        if not isinstance(expression.exp, operators.OrderByOperator) and not isinstance(expression.exp, operators.OrderByDescendingOperator):
             raise AttributeError("ThenBy needs to follow OrderBy or OrderByDescending")
         t = LambdaExpression.parse(expression.type, expression.func)
         te = LambdaExpression.parse(expression.exp.type, expression.exp.func)
@@ -132,4 +132,3 @@ class SqlVisitor(Visitor):
 
     def visit_AveOperator(self, expression):
         return self._visit_lambda(expression, u"AVG")
-

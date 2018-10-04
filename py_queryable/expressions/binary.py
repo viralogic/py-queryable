@@ -1,5 +1,6 @@
 from . import Expression
 
+
 class BinaryExpression(Expression):
     def __init__(self, left_exp, op_exp, right_exp):
         super(BinaryExpression, self).__init__()

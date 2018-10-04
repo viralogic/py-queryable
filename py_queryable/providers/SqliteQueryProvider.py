@@ -35,4 +35,3 @@ class SqliteQueryProvider(IQueryProvider):
         queryable = self.createQuery(expression)
         cursor.execute(queryable.sql)
         return cursor
-
