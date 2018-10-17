@@ -1,6 +1,12 @@
 .. image:: https://travis-ci.org/viralogic/py-queryable.svg?branch=master
     :target: https://travis-ci.org/viralogic/py-queryable
 
+.. image:: https://ci.appveyor.com/api/projects/status/at6ub5b9e2wu83s6/branch/master?svg=true
+    :target: https://ci.appveyor.com/project/viralogic/py-queryable/branch/master
+
+.. image:: https://coveralls.io/repos/github/viralogic/py-queryable/badge.svg?branch=master
+    :target: https://coveralls.io/github/viralogic/py-queryable?branch=master
+
 =============
 py-queryable
 =============
