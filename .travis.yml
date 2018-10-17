@@ -18,7 +18,7 @@ install:
 
 # command to run tests
 script:
-#  - py.test -s --cov=py_queryable --cov-report xml:/tmp/cov-py_queryable.xml --junitxml=/tmp/py_queryable.xml
+  - py.test -s --cov=py_queryable --cov-report xml:/tmp/cov-py_queryable.xml --junitxml=/tmp/py_queryable.xml
   - pycodestyle --ignore=E501 --max-line-length=88 py_queryable tests
 
 after_success:

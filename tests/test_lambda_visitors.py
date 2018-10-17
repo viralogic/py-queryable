@@ -118,8 +118,15 @@ class SqlLambdaTranslatorTest(TestCase):
         self.assertIsInstance(t.body.right, ast.Num, u"Should be a Num instance")
         self.assertEquals(
             t.body.right.sql,
-            unicode(t.body.right.n),
+            t.body.right.n,
             u"Num() node should have sql property equal to {0}".format(t.body.right.n)
+        )
+
+    def test_return(self):
+        t = SqlLambdaTranslatorTest.translate(lambda x: lambda x: (x.gpa > 10 and x.first_name == u'Bruce') or x.first_name == u'Dustin')
+        self.assertEquals(
+            t.body.sql,
+            u"(x.gpa > 10 AND x.first_name = 'Bruce') OR x.first_name = 'Dustin'"
         )
 
     def test_num_compare(self):
@@ -128,7 +135,7 @@ class SqlLambdaTranslatorTest(TestCase):
             t.body.comparators[0], ast.Num, u"Should be a Num instance")
         self.assertEquals(
             t.body.comparators[0].sql,
-            unicode(t.body.comparators[0].n),
+            t.body.comparators[0].n,
             u"Num() node should have sql property equal to {0}".format(
                 t.body.comparators[0].n)
         )
@@ -175,7 +182,6 @@ class SqlLambdaTranslatorTest(TestCase):
     def test_compare_simple(self):
         t = SqlLambdaTranslatorTest.translate(self.simple_lte)
         correct = u"x.gpa <= 10"
-        self.assertIsInstance(t.body, ast.Compare, u"Should be a Compare instance")
         self.assertEquals(
             t.body.sql,
             correct,
@@ -195,7 +201,6 @@ class SqlLambdaTranslatorTest(TestCase):
     def test_boolop(self):
         t = SqlLambdaTranslatorTest.translate(self.simple_and)
         correct = u"x.gpa >= 10 AND x.gpa <= 50"
-        self.assertIsInstance(t.body, ast.BoolOp, u"Should be a BoolOp instance")
         self.assertEqual(
             t.body.sql,
             correct,
@@ -205,7 +210,6 @@ class SqlLambdaTranslatorTest(TestCase):
     def test_binop(self):
         t = SqlLambdaTranslatorTest.translate(self.simple_plus)
         correct = u"x.gpa + 10"
-        self.assertIsInstance(t.body, ast.BinOp, u"Should be a BinOp instance")
         self.assertEqual(
             t.body.sql,
             correct,
@@ -233,7 +237,6 @@ class SqlLambdaTranslatorTest(TestCase):
 
     def test_unary(self):
         t = SqlLambdaTranslatorTest.translate(self.simple_not)
-        self.assertIsInstance(t.body, ast.UnaryOp, u"Should be a UnaryOp instance")
         correct = u"NOT x.gpa = 10"
         self.assertEqual(
             t.body.sql,
@@ -257,7 +260,6 @@ class SqlLambdaTranslatorTest(TestCase):
 
     def test_list_select(self):
         t = SqlLambdaTranslatorTest.translate(self.list_select)
-        self.assertIsInstance(t.body, ast.List, u"Should be a List instance")
         correct = u"x.first_name, x.last_name, x.gpa"
         self.assertEqual(
             t.body.sql,
@@ -267,7 +269,6 @@ class SqlLambdaTranslatorTest(TestCase):
 
     def test_tuple_select(self):
         t = SqlLambdaTranslatorTest.translate(self.tuple_select)
-        self.assertIsInstance(t.body, ast.Tuple, u"Should be a Tuple instance")
         correct = u"x.first_name, x.last_name, x.gpa"
         self.assertEqual(
             t.body.sql,
@@ -277,7 +278,6 @@ class SqlLambdaTranslatorTest(TestCase):
 
     def test_dict_select(self):
         t = SqlLambdaTranslatorTest.translate(self.dict_select)
-        self.assertIsInstance(t.body, ast.Dict, u"Should be a Dict instance")
         correct = u"x.first_name AS 'FirstName', x.last_name AS 'LastName', x.gpa AS 'GPA'"
         self.assertEqual(
             t.body.sql,

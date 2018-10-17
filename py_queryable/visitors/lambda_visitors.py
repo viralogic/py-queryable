@@ -8,6 +8,26 @@ class SqlLambdaTranslator(ast.NodeVisitor):
     def __init__(self):
         super(SqlLambdaTranslator, self).__init__()
 
+    def __flatten_node_properties(self, node, attribute):
+        self.generic_visit(node)
+        attr_node = getattr(node, attribute)
+        if hasattr(attr_node, u"id"):
+            node.id = attr_node.id
+        if hasattr(attr_node, u"sql"):
+            node.sql = attr_node.sql
+        if hasattr(attr_node, u"ops"):
+            node.ops = attr_node.ops
+        if hasattr(attr_node, u"op"):
+            node.op = attr_node.op
+        if hasattr(attr_node, u"left"):
+            node.left = attr_node.left
+        if hasattr(attr_node, u"values"):
+            node.values = attr_node.values
+        if hasattr(attr_node, u"comparators"):
+            node.comparators = attr_node.comparators
+        if hasattr(attr_node, u"right"):
+            node.right = attr_node.right
+
     def find_node_type(self, start_node, node_type, children_attr):
         if isinstance(start_node, node_type):
             return start_node
@@ -54,7 +74,7 @@ class SqlLambdaTranslator(ast.NodeVisitor):
         node.sql = u"%"
 
     def visit_Num(self, node):
-        node.sql = u"{0}".format(node.n)
+        node.sql = node.n
 
     def visit_Str(self, node):
         node.sql = unicode(node.s)
@@ -77,6 +97,9 @@ class SqlLambdaTranslator(ast.NodeVisitor):
     def visit_Or(self, node):
         node.sql = u"OR"
 
+    def visit_Return(self, node):
+        self.__flatten_node_properties(node, u"value")
+
     def visit_Compare(self, node):
         self.generic_visit(node)
 
@@ -93,12 +116,15 @@ class SqlLambdaTranslator(ast.NodeVisitor):
             elif isinstance(node.left, ast.Attribute) and isinstance(node.comparators[0], unicode):
                 node.id = node.left.id
                 node.sql = u"{0} {1} '%{2}%'".format(node.left.sql, node.ops[0].sql, node.comparators[0])
+            elif isinstance(node.left, ast.Attribute) and isinstance(node.comparators[0], ast.Str):
+                node.id = node.left.id
+                node.sql = u"{0} {1} '%{2}%'".format(node.left.sql, node.ops[0].sql, node.comparators[0].sql)
             else:
                 raise Exception(u"Don't know what to do with this node={0} for the IN operator".format(node.__repr__()))
         else:
             node.id = node.left.id
             if hasattr(node.comparators[0], u"sql"):
-                comparator = node.comparators[0].sql
+                comparator = node.comparators[0].sql if not isinstance(node.comparators[0].sql, unicode) else "'{0}'".format(node.comparators[0].sql)
             elif isinstance(node.comparators[0], unicode):
                 comparator = u"'{0}'".format(node.comparators[0])
             else:
@@ -131,7 +157,7 @@ class SqlLambdaTranslator(ast.NodeVisitor):
         node.sql = u"{0} {1}".format(node.op.sql, node.operand.sql)
 
     def visit_Lambda(self, node):
-        self.generic_visit(node)
+        self.__flatten_node_properties(node, u"body")
 
     def visit_List(self, node):
         self.generic_visit(node)
