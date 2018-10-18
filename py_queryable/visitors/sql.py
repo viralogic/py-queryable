@@ -132,3 +132,6 @@ class SqlVisitor(Visitor):
 
     def visit_AveOperator(self, expression):
         return self._visit_lambda(expression, u"AVG")
+
+    def visit_JoinExpression(self, expression):
+        raise NotImplementedError()
