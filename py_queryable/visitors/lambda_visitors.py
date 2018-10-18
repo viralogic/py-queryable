@@ -1,4 +1,5 @@
 import ast
+import inspect
 from py_linq import Enumerable
 from collections import deque
 
@@ -11,22 +12,9 @@ class SqlLambdaTranslator(ast.NodeVisitor):
     def __flatten_node_properties(self, node, attribute):
         self.generic_visit(node)
         attr_node = getattr(node, attribute)
-        if hasattr(attr_node, u"id"):
-            node.id = attr_node.id
-        if hasattr(attr_node, u"sql"):
-            node.sql = attr_node.sql
-        if hasattr(attr_node, u"ops"):
-            node.ops = attr_node.ops
-        if hasattr(attr_node, u"op"):
-            node.op = attr_node.op
-        if hasattr(attr_node, u"left"):
-            node.left = attr_node.left
-        if hasattr(attr_node, u"values"):
-            node.values = attr_node.values
-        if hasattr(attr_node, u"comparators"):
-            node.comparators = attr_node.comparators
-        if hasattr(attr_node, u"right"):
-            node.right = attr_node.right
+        members = attr_node.__dict__.keys()
+        for a in members:
+            setattr(node, a, getattr(attr_node, a))
 
     def find_node_type(self, start_node, node_type, children_attr):
         if isinstance(start_node, node_type):
