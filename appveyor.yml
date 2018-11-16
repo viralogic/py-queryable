@@ -14,11 +14,9 @@ install:
   - "%PYTHON%/Scripts/pip.exe install -qq pytest"
   - "%PYTHON%/Scripts/pip.exe install -qq pytest-cov"
   - "%PYTHON%/Scripts/pip.exe install -qq pycodestyle"
-  # - "%PYTHON%/Scripts/pip.exe install coveralls --quiet"
 
 test_script:
   - "%PYTHON%/Scripts/py.test -s --cov=py_queryable"
   - "%PYTHON%/Scripts/pycodestyle --ignore=E501 --max-line-length=88 py_queryable tests"
 
 # after_test:
-#   - "%PYTHON%/Scripts/coveralls"
