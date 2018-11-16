@@ -8,13 +8,13 @@ python:
 
 # command to install dependencies
 install:
-  - "pip install -qq py-linq"
-  - "pip install -qq meta"
-  - "pip install -qq pytest"
-  - "pip install -qq 'pytest-cov==2.6'"
-  - "pip install -qq pycodestyle"
-  - "pip install -qq python-coveralls"
-  - "pip install --upgrade pip"
+  - pip install -qq py-linq
+  - pip install -qq meta
+  - pip install -qq "pytest==3.2.3"
+  - pip install -qq "pytest-cov==2.6"
+  - pip install -qq pycodestyle
+  - pip install -qq python-coveralls
+  - pip install --upgrade pip
 
 # command to run tests
 script:
