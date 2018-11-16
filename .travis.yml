@@ -11,7 +11,7 @@ install:
   - "pip install -qq py-linq"
   - "pip install -qq meta"
   - "pip install -qq pytest"
-  - "pip install -qq pytest-cov"
+  - "pip install -qq 'pytest-cov<=2.6'"
   - "pip install -qq pycodestyle"
   - "pip install -qq 'coverage>=4.4'"
   - "pip install -qq python-coveralls"
