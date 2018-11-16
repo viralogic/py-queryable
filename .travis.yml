@@ -13,6 +13,7 @@ install:
   - "pip install -qq pytest"
   - "pip install -qq pytest-cov"
   - "pip install -qq pycodestyle"
+  - "pip install -qq coverage"
   - "pip install -qq python-coveralls"
   - "pip install --upgrade pip"
 
